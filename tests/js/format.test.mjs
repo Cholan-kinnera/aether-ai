@@ -2,14 +2,23 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  ageText, buildPayload, categoryOf, errorMessage, fmt, hourLabel, toM3h,
+  ageText,
+  buildPayload,
+  categoryOf,
+  errorMessage,
+  fmt,
+  hourLabel,
+  toM3h,
 } from "../../src/aether/static/js/format.js";
 
 const base = {
   coords: null,
   location: "  Delhi ",
   members: [{ name: " ", groups: ["child"] }],
-  activities: [{ label: "Walk", activity: "walk", duration: "1", earliest: "6", latest: "22" }, { label: " ", activity: "run", duration: "1", earliest: "6", latest: "22" }],
+  activities: [
+    { label: "Walk", activity: "walk", duration: "1", earliest: "6", latest: "22" },
+    { label: " ", activity: "run", duration: "1", earliest: "6", latest: "22" },
+  ],
   home: { area: "", ceiling: "2.7", cadr: "", unit: "m3h" },
   commute: { distance: "", mode: "bus", occupants: "1", trips: "10" },
   note: "  ",
@@ -63,13 +72,21 @@ test("buildPayload with coordinates, home and commute", () => {
   assert.equal(p.location, undefined);
   assert.equal(p.latitude, 28.6);
   assert.deepEqual(p.home, { floor_area_m2: 15, ceiling_height_m: 2.5, purifier_cadr_m3h: 170 });
-  assert.deepEqual(p.commute, { distance_km: 8, current_mode: "car_petrol", occupants: 2, trips_per_week: 10 });
+  assert.deepEqual(p.commute, {
+    distance_km: 8,
+    current_mode: "car_petrol",
+    occupants: 2,
+    trips_per_week: 10,
+  });
   assert.equal(p.note, "son has asthma");
 });
 
 test("errorMessage is friendly and never dumps raw validation output", () => {
   assert.match(errorMessage(422, { detail: [{ loc: ["x"] }] }), /check the highlighted/);
   assert.match(errorMessage(429, null), /wait a minute/);
-  assert.equal(errorMessage(404, { detail: "could not find a place called 'X'" }), "could not find a place called 'X'");
+  assert.equal(
+    errorMessage(404, { detail: "could not find a place called 'X'" }),
+    "could not find a place called 'X'",
+  );
   assert.match(errorMessage(500, null), /went wrong/);
 });

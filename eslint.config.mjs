@@ -3,7 +3,15 @@ import js from "@eslint/js";
 import globals from "globals";
 
 export default [
-  { ignores: ["src/aether/static/vendor/**", "node_modules/**", ".venv/**", "test-results/**", "playwright-report/**"] },
+  {
+    ignores: [
+      "src/aether/static/vendor/**",
+      "node_modules/**",
+      ".venv/**",
+      "test-results/**",
+      "playwright-report/**",
+    ],
+  },
   js.configs.recommended,
   {
     files: ["src/aether/static/js/**/*.js"],
@@ -13,7 +21,10 @@ export default [
     },
   },
   // motion.js and cursor.js are classic scripts (IIFEs), loaded after the vendored globals.
-  { files: ["src/aether/static/js/motion.js", "src/aether/static/js/cursor.js"], languageOptions: { sourceType: "script" } },
+  {
+    files: ["src/aether/static/js/motion.js", "src/aether/static/js/cursor.js"],
+    languageOptions: { sourceType: "script" },
+  },
   { files: ["tests/**/*.mjs", "*.mjs"], languageOptions: { globals: globals.node } },
   // Playwright callbacks passed to page.evaluate run in the browser.
   { files: ["tests/e2e/**/*.mjs"], languageOptions: { globals: { ...globals.node, ...globals.browser } } },

@@ -8,19 +8,23 @@
   const root = document.documentElement;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
   const { gsap, ScrollTrigger, Lenis } = window;
-  const topbar = document.querySelector(".topbar");
+  const topbar = /** @type {HTMLElement | null} */ (document.querySelector(".topbar"));
   const offset = () => -((topbar?.offsetHeight || 0) + 12);
+  /** @type {import("lenis").default | null} */
   let lenis = null;
-  let tick = null;
+  /** @type {(time: number) => void} */
+  let tick = () => {};
+  /** @type {(() => void) | null} */
   let drawParticles = null;
   const air = { density: 0 };
 
   // In-page links move focus as well as scroll. Modified clicks are left to the browser.
+  /** @param {MouseEvent} event */
   function onScrollLink(event) {
     if (event.defaultPrevented || event.button !== 0) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const hash = event.currentTarget.getAttribute("href");
-    const target = document.querySelector(hash);
+    const hash = /** @type {HTMLAnchorElement} */ (event.currentTarget).getAttribute("href") ?? "";
+    const target = /** @type {HTMLElement | null} */ (document.querySelector(hash));
     if (!target) return;
     event.preventDefault();
     if (window.location.hash !== hash) history.pushState(null, "", hash);
@@ -32,7 +36,9 @@
       target.scrollIntoView({ block: "start" });
     }
   }
-  document.querySelectorAll("a[data-scroll]").forEach((link) => link.addEventListener("click", onScrollLink));
+  document
+    .querySelectorAll("a[data-scroll]")
+    .forEach((link) => link.addEventListener("click", (e) => onScrollLink(/** @type {MouseEvent} */ (e))));
 
   if (reduced.matches || !gsap || !ScrollTrigger || !Lenis) {
     root.classList.add("sky-is-clear");
@@ -42,7 +48,7 @@
   gsap.registerPlugin(ScrollTrigger);
   lenis = new Lenis({ autoRaf: false, lerp: 0.085 });
   lenis.on("scroll", ScrollTrigger.update);
-  tick = (time) => lenis.raf(time * 1000);
+  tick = (time) => lenis?.raf(time * 1000);
   gsap.ticker.add(tick);
   gsap.ticker.lagSmoothing(0);
 
@@ -52,23 +58,33 @@
     const text = h.textContent.trim();
     const words = text.split(/\s+/);
     h.setAttribute("aria-label", text);
-    h.replaceChildren(...words.flatMap((word, i) => {
-      const outer = document.createElement("span");
-      const inner = document.createElement("span");
-      outer.className = "word";
-      outer.setAttribute("aria-hidden", "true");
-      inner.textContent = word;
-      outer.append(inner);
-      return i < words.length - 1 ? [outer, document.createTextNode(" ")] : [outer];
-    }));
-    gsap.from(h.querySelectorAll(".word > span"), { yPercent: 110, duration: 0.9, ease: "power3.out", stagger: 0.045, delay: 0.1 });
+    h.replaceChildren(
+      ...words.flatMap((word, i) => {
+        const outer = document.createElement("span");
+        const inner = document.createElement("span");
+        outer.className = "word";
+        outer.setAttribute("aria-hidden", "true");
+        inner.textContent = word;
+        outer.append(inner);
+        return i < words.length - 1 ? [outer, document.createTextNode(" ")] : [outer];
+      }),
+    );
+    gsap.from(h.querySelectorAll(".word > span"), {
+      yPercent: 110,
+      duration: 0.9,
+      ease: "power3.out",
+      stagger: 0.045,
+      delay: 0.1,
+    });
   });
 
   // ------------------------------------------------------------ shared: particles
   // Drifting specks of "PM2.5"; their density follows air.density (0 clear, 1 thick smog).
-  const canvas = document.querySelector(".particles");
+  const canvas = /** @type {HTMLCanvasElement | null} */ (document.querySelector(".particles"));
   function initParticles() {
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    /** @type {{ x: number, y: number, r: number, vx: number, vy: number, a: number }[]} */
     const specks = [];
     let w = 0;
     let h = 0;
@@ -84,7 +100,14 @@
     window.addEventListener("resize", resize);
     const count = Math.round(Math.min(140, (w * h) / 9000));
     for (let i = 0; i < count; i++) {
-      specks.push({ x: Math.random() * w, y: Math.random() * h, r: 0.6 + Math.random() * 1.9, vx: 0.08 + Math.random() * 0.25, vy: -0.05 + Math.random() * 0.1, a: 0.25 + Math.random() * 0.45 });
+      specks.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: 0.6 + Math.random() * 1.9,
+        vx: 0.08 + Math.random() * 0.25,
+        vy: -0.05 + Math.random() * 0.1,
+        a: 0.25 + Math.random() * 0.45,
+      });
     }
     // A clear sky skips drawing entirely: clearing an empty canvas every frame would still
     // repaint it, and that forces the glass panels above it to re-blur on every frame.
@@ -113,18 +136,32 @@
     };
     gsap.ticker.add(drawParticles);
   }
-  if (canvas) initParticles();
+  initParticles();
 
   // ------------------------------------------------------------ landing
   function initLanding() {
     air.density = 1;
-    gsap.from(".hero-lede, .hero-actions, .hero-note", { opacity: 0, y: 16, duration: 0.7, ease: "power2.out", stagger: 0.08, delay: 0.45 });
+    gsap.from(".hero-lede, .hero-actions, .hero-note", {
+      opacity: 0,
+      y: 16,
+      duration: 0.7,
+      ease: "power2.out",
+      stagger: 0.08,
+      delay: 0.45,
+    });
 
     // The sky clears between the top of the page and "One plan for everyone at home".
-    gsap.timeline({
-      defaults: { ease: "none" },
-      scrollTrigger: { trigger: ".hero", start: "top top", endTrigger: "#features", end: "top 35%", scrub: 0.8 },
-    })
+    gsap
+      .timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: ".hero",
+          start: "top top",
+          endTrigger: "#features",
+          end: "top 35%",
+          scrub: 0.8,
+        },
+      })
       .to(".sky-clear", { opacity: 1 }, 0)
       .to(".haze-1", { opacity: 0, yPercent: -30 }, 0)
       .to(".haze-2", { opacity: 0, yPercent: -18 }, 0.1)
@@ -145,20 +182,21 @@
     // Winter inversion: the warm-air lid lifts and the smog spreads out as you scroll through.
     const phases = [...document.querySelectorAll(".phase")];
     const wide = window.matchMedia("(min-width: 48rem)").matches;
-    gsap.timeline({
-      defaults: { ease: "none" },
-      scrollTrigger: {
-        trigger: ".winter",
-        // Wide screens scroll through a tall sticky section; small screens just pass by it.
-        start: wide ? "top top" : "top 75%",
-        end: wide ? "bottom bottom" : "bottom 25%",
-        scrub: 0.6,
-        onUpdate: (self) => {
-          const active = Math.min(phases.length - 1, Math.floor(self.progress * phases.length));
-          phases.forEach((p, i) => p.classList.toggle("is-active", i === active));
+    gsap
+      .timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: ".winter",
+          // Wide screens scroll through a tall sticky section; small screens just pass by it.
+          start: wide ? "top top" : "top 75%",
+          end: wide ? "bottom bottom" : "bottom 25%",
+          scrub: 0.6,
+          onUpdate: (self) => {
+            const active = Math.min(phases.length - 1, Math.floor(self.progress * phases.length));
+            phases.forEach((p, i) => p.classList.toggle("is-active", i === active));
+          },
         },
-      },
-    })
+      })
       .to(".inv-lid", { attr: { y1: 70, y2: 70 } }, 0)
       .to(".inv-label", { attr: { y: 62 } }, 0)
       .to(".inv-smog", { attr: { y: 70, height: 210 }, opacity: 0.35 }, 0)
@@ -172,11 +210,15 @@
   const results = document.getElementById("results");
   // The sky follows the real AQI category of the plan: clear for Good, smog for Unhealthy+.
   const HAZE = [
-    { max: 50, level: 0 }, { max: 100, level: 0.25 }, { max: 150, level: 0.5 },
-    { max: 200, level: 0.75 }, { max: Infinity, level: 1 },
+    { max: 50, level: 0 },
+    { max: 100, level: 0.25 },
+    { max: 150, level: 0.5 },
+    { max: 200, level: 0.75 },
+    { max: Infinity, level: 1 },
   ];
+  /** @param {number} aqi */
   const settleSky = (aqi) => {
-    const level = HAZE.find((b) => aqi <= b.max).level;
+    const level = (HAZE.find((b) => aqi <= b.max) ?? HAZE[HAZE.length - 1]).level;
     gsap.to(".sky-clear", { opacity: 1 - level * 0.85, duration: 2.4, ease: "power2.inOut" });
     gsap.to(".haze-1", { opacity: level * 0.85, duration: 2.4, ease: "power2.inOut" });
     gsap.to(".haze-2", { opacity: level * 0.8, duration: 2.6, ease: "power2.inOut" });
@@ -185,16 +227,20 @@
     gsap.to(air, { density: level, duration: 2.4, ease: "power2.inOut" });
   };
 
-  function initPlanner() {
+  /** @param {HTMLElement} panel */
+  function plannerBackdrop(panel) {
     // Entrance: the panel glides up. Transform only (no fading), so text is never shown at
     // reduced contrast while it moves.
-    const panel = document.querySelector(".planner > .glass");
     gsap.from(panel, { y: 36, duration: 0.9, ease: "power3.out" });
 
     // Depth behind the form: as you scroll down it, the city layers rise at different speeds
     // (nearest fastest) and the sun sinks a little. The paths extend below the frame, so no
     // gap opens at the bottom.
-    gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: { trigger: panel, start: "top top", end: "bottom bottom", scrub: 1 } })
+    gsap
+      .timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: { trigger: panel, start: "top top", end: "bottom bottom", scrub: 1 },
+      })
       .to(".city-far", { y: -18 }, 0)
       .to(".city-mid", { y: -42 }, 0)
       .to(".city-near", { y: -78 }, 0)
@@ -205,54 +251,106 @@
     // fixed-size layer moved by transform, so following the pointer never repaints the panel.
     if (window.matchMedia("(pointer: fine) and (hover: hover)").matches) {
       panel.classList.add("has-glow");
-      panel.addEventListener("pointermove", (event) => {
-        const box = panel.getBoundingClientRect();
-        panel.style.setProperty("--mx", `${event.clientX - box.left}px`);
-        panel.style.setProperty("--my", `${event.clientY - box.top}px`);
-        panel.classList.add("is-lit");
-      }, { passive: true });
+      panel.addEventListener(
+        "pointermove",
+        (event) => {
+          const box = panel.getBoundingClientRect();
+          panel.style.setProperty("--mx", `${event.clientX - box.left}px`);
+          panel.style.setProperty("--my", `${event.clientY - box.top}px`);
+          panel.classList.add("is-lit");
+        },
+        { passive: true },
+      );
       panel.addEventListener("pointerleave", () => panel.classList.remove("is-lit"));
     }
+  }
 
+  function plannerRows() {
     // New household or plan rows ease open; removals stay instant so focus moves at once.
-    const grow = (node) => gsap.from(node, { height: 0, y: -10, paddingTop: 0, paddingBottom: 0, overflow: "hidden", duration: 0.45, ease: "power2.out", clearProps: "height,transform,paddingTop,paddingBottom,overflow", overwrite: true });
+    /** @param {Node} node */
+    const grow = (node) =>
+      gsap.from(node, {
+        height: 0,
+        y: -10,
+        paddingTop: 0,
+        paddingBottom: 0,
+        overflow: "hidden",
+        duration: 0.45,
+        ease: "power2.out",
+        clearProps: "height,transform,paddingTop,paddingBottom,overflow",
+        overwrite: true,
+      });
     ["members", "activities"].forEach((id) => {
-      const list = document.getElementById(id);
+      const list = /** @type {HTMLElement} */ (document.getElementById(id));
       let ready = false;
       new MutationObserver((changes) => {
         if (!ready) return;
         changes.forEach((c) => c.addedNodes.forEach((n) => n.nodeType === 1 && grow(n)));
       }).observe(list, { childList: true });
       // Rows restored on page load appear with the panel, not one by one.
-      requestAnimationFrame(() => { ready = true; });
+      requestAnimationFrame(() => {
+        ready = true;
+      });
     });
+  }
 
+  /** @param {HTMLElement} planForm */
+  function plannerSections(planForm) {
     // Optional sections slide open.
-    form.querySelectorAll("details.section").forEach((d) => {
+    planForm.querySelectorAll("details.section").forEach((node) => {
+      const d = /** @type {HTMLDetailsElement} */ (node);
       d.addEventListener("toggle", () => {
         if (!d.open) return;
         const body = d.querySelector(".grid");
-        if (body) gsap.from(body, { height: 0, y: -8, overflow: "hidden", duration: 0.4, ease: "power2.out", clearProps: "height,transform,overflow" });
+        if (!body) return;
+        gsap.from(body, {
+          height: 0,
+          y: -8,
+          overflow: "hidden",
+          duration: 0.4,
+          ease: "power2.out",
+          clearProps: "height,transform,overflow",
+        });
       });
     });
+  }
 
-
+  /** @param {HTMLElement} box the #results region */
+  function plannerResults(box) {
     // Results: glide down to them, then the cards rise in turn and the forecast bars grow.
     // data-animating marks the short entrance so tests can wait for it to settle.
     document.addEventListener("aether:results", (event) => {
       if (!lenis) return; // reduced motion was switched on mid-visit: results just appear
       // The results just grew the page; Lenis must re-measure before scrolling past the old end.
       lenis.resize();
-      ScrollTrigger.refresh();
-      lenis.scrollTo(results, { offset: offset(), duration: 1.1 });
-      results.dataset.animating = "true";
-      gsap.timeline({ onComplete: () => delete results.dataset.animating })
-        .from(results.children, { y: 28, duration: 0.65, ease: "power3.out", stagger: 0.08, clearProps: "transform" }, 0.15)
-        .from(results.querySelectorAll(".chart .bar"), { scaleY: 0, transformOrigin: "50% 100%", duration: 0.6, ease: "power2.out", stagger: 0.015 }, 0.5);
-      if (typeof event.detail?.aqi === "number") settleSky(event.detail.aqi);
+      ScrollTrigger?.refresh();
+      lenis.scrollTo(box, { offset: offset(), duration: 1.1 });
+      box.dataset.animating = "true";
+      gsap
+        .timeline({ onComplete: () => delete box.dataset.animating })
+        .from(
+          box.children,
+          { y: 28, duration: 0.65, ease: "power3.out", stagger: 0.08, clearProps: "transform" },
+          0.15,
+        )
+        .from(
+          box.querySelectorAll(".chart .bar"),
+          { scaleY: 0, transformOrigin: "50% 100%", duration: 0.6, ease: "power2.out", stagger: 0.015 },
+          0.5,
+        );
+      const aqi = /** @type {CustomEvent<{ aqi?: number }>} */ (event).detail?.aqi;
+      if (typeof aqi === "number") settleSky(aqi);
     });
   }
-  if (form && results) initPlanner();
+
+  function initPlanner() {
+    if (!form || !results) return;
+    plannerBackdrop(/** @type {HTMLElement} */ (document.querySelector(".planner > .glass")));
+    plannerRows();
+    plannerSections(form);
+    plannerResults(results);
+  }
+  initPlanner();
 
   // ------------------------------------------------------------ reduced motion mid-visit
   reduced.addEventListener("change", (event) => {
@@ -264,8 +362,8 @@
     gsap.globalTimeline.getChildren().forEach((a) => a.progress(1));
     gsap.ticker.remove(tick);
     if (drawParticles) gsap.ticker.remove(drawParticles);
-    canvas?.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
-    lenis.destroy();
+    if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+    lenis?.destroy();
     lenis = null;
     document.querySelectorAll(".phase").forEach((p) => p.classList.add("is-active"));
     root.classList.add("sky-is-clear");

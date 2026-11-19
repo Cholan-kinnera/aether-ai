@@ -1,35 +1,62 @@
 // Planner page wiring: the form, location, submit and the AI briefing upgrade.
 import { buildPayload, errorMessage } from "./format.js";
-import { el } from "./dom.js";
-import { HERE, addActivity, addMember, forget, readActivities, readMembers, restore, save } from "./household.js";
+import { byId, el, pick } from "./dom.js";
+import {
+  HERE,
+  addActivity,
+  addMember,
+  forget,
+  readActivities,
+  readMembers,
+  restore,
+  save,
+} from "./household.js";
 import { SOURCE_TEXT, renderPlan } from "./render.js";
 
-const $ = (id) => document.getElementById(id);
-const form = $("plan-form");
-const results = $("results");
-const locationInput = $("location");
+/** @typedef {import("./api").PlanResponse} PlanResponse */
+/** @typedef {import("./api").Briefing} Briefing */
+
+const form = byId("plan-form");
+const results = byId("results");
+const locationInput = /** @type {HTMLInputElement} */ (byId("location"));
+/** @type {{ latitude: number, longitude: number } | null} */
 let coords = null;
 
+/** @param {string} id */
+const value = (id) =>
+  /** @type {HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement} */ (byId(id)).value;
+
+/**
+ * Replace the results with one message (an alert by default).
+ * @param {string} text
+ * @param {"alert" | "status"} [role]
+ * @param {string} [className]
+ */
 function showMessage(text, role = "alert", className = "error") {
   const p = el("p", text, className);
   p.setAttribute("role", role);
   results.replaceChildren(p);
 }
 
-// The plan arrives with a rule-based briefing; swap in Gemini's version if it comes back.
+/**
+ * The plan arrives with a rule-based briefing; swap in Gemini's version if it comes back.
+ * @param {string} id
+ */
 async function upgradeBriefing(id) {
-  const source = results.querySelector(".briefing-source");
+  const source = pick(results, ".briefing-source");
   try {
     const response = await fetch(`/api/briefing/${encodeURIComponent(id)}`, { method: "POST" });
+    /** @type {Briefing | null} */
     const data = response.ok ? await response.json() : null;
     const fromGemini = data?.explanation_source === "gemini";
-    if (fromGemini) results.querySelector(".briefing-text").textContent = data.explanation;
+    if (data && fromGemini) pick(results, ".briefing-text").textContent = data.explanation;
     source.textContent = SOURCE_TEXT[fromGemini ? "gemini" : "rules"];
   } catch {
     source.textContent = SOURCE_TEXT.rules;
   }
 }
 
+/** @param {PlanResponse} d */
 function render(d) {
   results.replaceChildren(...renderPlan(d));
   results.focus({ preventScroll: true });
@@ -39,8 +66,9 @@ function render(d) {
   if (d.briefing_id) upgradeBriefing(d.briefing_id);
 }
 
+/** Validate the one required field; mark it invalid and focus it when empty. */
 function locationIsValid() {
-  const error = $("location-error");
+  const error = byId("location-error");
   const ok = Boolean(coords) || locationInput.value.trim().length >= 2;
   error.hidden = ok;
   error.textContent = ok ? "" : "Please enter a city or use your location.";
@@ -54,25 +82,31 @@ function locationIsValid() {
 }
 
 function payload() {
-  const value = (id) => $(id).value;
   return buildPayload({
     coords,
     location: locationInput.value,
     members: readMembers(),
     activities: readActivities(),
     home: { area: value("area"), ceiling: value("ceiling"), cadr: value("cadr"), unit: value("cadr-unit") },
-    commute: { distance: value("distance"), mode: value("mode"), occupants: value("occupants"), trips: value("trips") },
+    commute: {
+      distance: value("distance"),
+      mode: value("mode"),
+      occupants: value("occupants"),
+      trips: value("trips"),
+    },
     note: value("note"),
   });
 }
 
+/** @param {boolean} busy */
 function setBusy(busy) {
-  const button = $("submit-btn");
+  const button = /** @type {HTMLButtonElement} */ (byId("submit-btn"));
   button.disabled = busy;
   button.classList.toggle("is-loading", busy);
   results.setAttribute("aria-busy", String(busy));
 }
 
+/** @param {SubmitEvent} event */
 async function submit(event) {
   event.preventDefault();
   if (!locationIsValid()) return;
@@ -112,16 +146,16 @@ function useMyLocation() {
   );
 }
 
-$("add-member").addEventListener("click", () => addMember()?.querySelector("input")?.focus());
-$("add-activity").addEventListener("click", () => addActivity()?.querySelector("input")?.focus());
-$("forget-btn").addEventListener("click", () => {
+byId("add-member").addEventListener("click", () => addMember()?.querySelector("input")?.focus());
+byId("add-activity").addEventListener("click", () => addActivity()?.querySelector("input")?.focus());
+byId("forget-btn").addEventListener("click", () => {
   forget();
   showMessage("Saved household removed from this device.", "status", "help");
 });
-$("geo-btn").addEventListener("click", useMyLocation);
+byId("geo-btn").addEventListener("click", useMyLocation);
 locationInput.addEventListener("input", () => {
   if (locationInput.value !== HERE) coords = null;
 });
-form.addEventListener("submit", submit);
+form.addEventListener("submit", (event) => submit(/** @type {SubmitEvent} */ (event)));
 
 restore(locationInput);

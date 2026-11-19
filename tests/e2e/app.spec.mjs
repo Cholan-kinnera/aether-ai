@@ -6,7 +6,9 @@ const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 async function expectNoA11yViolations(page) {
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG).analyze();
-  const found = violations.flatMap((v) => v.nodes.map((n) => `${v.id} at ${n.target.join(" ")}: ${n.any[0]?.message ?? n.failureSummary}`));
+  const found = violations.flatMap((v) =>
+    v.nodes.map((n) => `${v.id} at ${n.target.join(" ")}: ${n.any[0]?.message ?? n.failureSummary}`),
+  );
   expect(found).toEqual([]);
 }
 
@@ -99,8 +101,12 @@ test.describe("planner", () => {
     await expect.poll(haze, { timeout: 6000 }).toBeGreaterThan(0.5);
   });
 
-  test("the city rises behind the form as you scroll; a mouse lights the glass", async ({ page, isMobile }) => {
-    const treesY = () => page.locator(".trees").evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).f);
+  test("the city rises behind the form as you scroll; a mouse lights the glass", async ({
+    page,
+    isMobile,
+  }) => {
+    const treesY = () =>
+      page.locator(".trees").evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).f);
     expect(await treesY()).toBeGreaterThan(-1);
     await page.mouse.wheel(0, 1200);
     await expect.poll(treesY, { timeout: 4000 }).toBeLessThan(-20);
@@ -120,7 +126,9 @@ test.describe("planner", () => {
     await planFor(page, "Delhi");
     await expect(page.locator("#results")).toBeFocused();
     await page.waitForTimeout(800);
-    expect(await page.locator(".haze-1").evaluate((e) => Number(getComputedStyle(e).opacity))).toBeLessThan(0.05);
+    expect(await page.locator(".haze-1").evaluate((e) => Number(getComputedStyle(e).opacity))).toBeLessThan(
+      0.05,
+    );
     await expect(page.locator("html")).not.toHaveClass(/lenis/);
   });
 
@@ -135,19 +143,34 @@ test.describe("landing", () => {
   test("hero, every section, and WCAG 2.1 AA with live data shown", async ({ page }) => {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+    page.on("console", (m) => {
+      if (m.type() === "error") errors.push(m.text());
+    });
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName(/Winter smog thins out/);
-    for (const name of ["Right now, city by city", "One plan for everyone at home", "Why winter mornings are the worst", "For the people you worry about", "How it decides", "Forecast and measurement, side by side", "Questions people ask"]) {
+    for (const name of [
+      "Right now, city by city",
+      "One plan for everyone at home",
+      "Why winter mornings are the worst",
+      "For the people you worry about",
+      "How it decides",
+      "Forecast and measurement, side by side",
+      "Questions people ask",
+    ]) {
       await expect(page.getByRole("heading", { level: 2, name })).toBeAttached();
     }
     await page.locator("#now").scrollIntoViewIfNeeded();
     await expect(page.getByText("Delhi, Test State")).toBeVisible();
     await expect(page.locator(".live-aqi")).toContainText("170");
     await expect(page.getByText(/Measured at Fixture Road \(CPCB\)/)).toBeVisible();
-    await expect(page.getByRole("link", { name: "Plan a day in Delhi" })).toHaveAttribute("href", "/plan?city=Delhi");
+    await expect(page.getByRole("link", { name: "Plan a day in Delhi" })).toHaveAttribute(
+      "href",
+      "/plan?city=Delhi",
+    );
     await expectNoA11yViolations(page);
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
     expect(overflow).toBe(0);
     expect(errors).toEqual([]);
   });
@@ -180,7 +203,10 @@ test.describe("landing", () => {
     await expect(page.getByText(/turns public air-quality data and published guidance/)).toBeVisible();
   });
 
-  test("custom cursor follows a mouse, grows over links, and never appears on touch", async ({ page, isMobile }) => {
+  test("custom cursor follows a mouse, grows over links, and never appears on touch", async ({
+    page,
+    isMobile,
+  }) => {
     await page.goto("/");
     const html = page.locator("html");
     if (isMobile) {

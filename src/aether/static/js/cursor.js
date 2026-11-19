@@ -18,7 +18,11 @@
 
   const CLICKABLE = "a, button, summary, label, [role='button'], .chip";
   const TEXT = "input, textarea, select, [contenteditable='true']";
-  let x = -100, y = -100, rx = -100, ry = -100, frame = 0;
+  let x = -100,
+    y = -100,
+    rx = -100,
+    ry = -100,
+    frame = 0;
 
   function loop() {
     rx += (x - rx) * 0.2;
@@ -27,17 +31,21 @@
     frame = Math.abs(x - rx) + Math.abs(y - ry) > 0.1 ? requestAnimationFrame(loop) : 0;
   }
 
-  window.addEventListener("pointermove", (event) => {
-    if (event.pointerType !== "mouse") return;
-    x = event.clientX;
-    y = event.clientY;
-    dot.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-    const target = event.target instanceof Element ? event.target : null;
-    root.classList.toggle("cursor-text", Boolean(target?.closest(TEXT)));
-    root.classList.toggle("cursor-hover", Boolean(target?.closest(CLICKABLE)));
-    root.classList.add("cursor-visible");
-    if (!frame) frame = requestAnimationFrame(loop);
-  }, { passive: true });
+  window.addEventListener(
+    "pointermove",
+    (event) => {
+      if (event.pointerType !== "mouse") return;
+      x = event.clientX;
+      y = event.clientY;
+      dot.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      const target = event.target instanceof Element ? event.target : null;
+      root.classList.toggle("cursor-text", Boolean(target?.closest(TEXT)));
+      root.classList.toggle("cursor-hover", Boolean(target?.closest(CLICKABLE)));
+      root.classList.add("cursor-visible");
+      if (!frame) frame = requestAnimationFrame(loop);
+    },
+    { passive: true },
+  );
 
   window.addEventListener("pointerdown", () => root.classList.add("cursor-down"));
   window.addEventListener("pointerup", () => root.classList.remove("cursor-down"));
