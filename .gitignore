@@ -1,74 +1,17 @@
-# Environment & Secrets (NEVER commit secrets or API keys)
 .env
-.env.*
-!.env.example
-*.pem
-*.key
-*.cert
-
-# Python & Virtual Environments (uv / pip)
-.venv/
-venv/
-env/
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Python Tooling & Caches
+*.pyc
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
+*.egg-info/
+.venv/
+.env.*
+!.env.example
 .mypy_cache/
-.ruff_cache/
-
-# Node.js & Frontend Caches
+coverage/
 node_modules/
-.pnpm-store/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 .next/
-out/
-.turbo/
-
-# 3D Assets & Large Datasets
-# Raw large datasets and external models exceeding lightweight repo thresholds
-*.tar.gz
-*.zip
-*.csv.gz
-*.parquet
-
-# Operating System & IDE
-.DS_Store
-Thumbs.db
-.vscode/
-!.vscode/settings.json
-!.vscode/extensions.json
-.idea/
-*.swp
-*.swo
-
-# Docker / Persistent Database Local Storage
-docker_data/
-postgres_data/
-redis_data/
+# 3D assets need a verified license before they are committed
+*.glb

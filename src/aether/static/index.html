@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="AETHER tells you whether the air is safe for your plans, based on your health and activity.">
+  <title>AETHER – Urban Air Quality Assistant</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="site-header">
+    <h1>AETHER</h1>
+    <p>Is the air right for <em>your</em> plans today?</p>
+  </header>
+
+  <main id="main">
+    <form id="advice-form" novalidate aria-describedby="form-help">
+      <p id="form-help" class="help">Tell us where you are and what you plan to do. Nothing is stored.</p>
+
+      <div class="field">
+        <label for="location">City or place</label>
+        <div class="row">
+          <input id="location" name="location" type="text" autocomplete="address-level2"
+                 maxlength="100" placeholder="e.g. Bengaluru" aria-describedby="location-error">
+          <button type="button" id="geo-btn" class="secondary">Use my location</button>
+        </div>
+        <p id="location-error" class="error" hidden></p>
+      </div>
+
+      <fieldset>
+        <legend>Anyone sensitive to air pollution? (optional)</legend>
+        <div class="checks">
+          <label><input type="checkbox" name="groups" value="asthma"> Asthma / lung condition</label>
+          <label><input type="checkbox" name="groups" value="child"> Child</label>
+          <label><input type="checkbox" name="groups" value="elderly"> Older adult</label>
+          <label><input type="checkbox" name="groups" value="pregnant"> Pregnancy</label>
+          <label><input type="checkbox" name="groups" value="heart_condition"> Heart condition</label>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="activity">Planned activity</label>
+        <select id="activity" name="activity">
+          <option value="">Let AETHER decide from my note (default: walking)</option>
+          <option value="rest">Resting indoors/outdoors</option>
+          <option value="walk">Walking</option>
+          <option value="commute">Commuting</option>
+          <option value="cycle">Cycling</option>
+          <option value="run">Running / intense exercise</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="note">Anything else? (optional)</label>
+        <textarea id="note" name="note" rows="3" maxlength="300"
+                  placeholder="e.g. I have asthma and want to jog this evening"></textarea>
+      </div>
+
+      <button type="submit" id="submit-btn">Check the air</button>
+    </form>
+
+    <section id="results" aria-live="polite" aria-busy="false" tabindex="-1"></section>
+  </main>
+
+  <footer>
+    <p>Data: Open-Meteo air-quality API. Explanations: Google Gemini (when configured).
+       General guidance only, not medical advice.</p>
+  </footer>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

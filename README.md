@@ -1,148 +1,105 @@
-# AETHER: AI-Powered Urban Air Quality Intelligence Platform
+# AETHER – Urban Air Quality Assistant
 
-> **Google PromptWars Virtual Edition — Challenge 6: Urban Air Quality Assistant**  
-> *Secure, Tested, Accessible (WCAG 2.1 AA), Efficient, and Scientifically Defensible.*
+[![CI](https://github.com/Cholan-kinnera/aether-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Cholan-kinnera/aether-ai/actions)
 
----
+> Generic AQI apps show one number for everyone. **AETHER tells *you* whether the air is
+> right for *your* plans** – a child's playground trip, an asthmatic's evening jog, a cyclist's
+> commute – and when today's cleanest window is.
 
-## 1. Project Overview
+**Challenge:** PromptWars Virtual – Challenge 6, *Urban Air Quality Assistant*.
 
-AETHER translates complex spatiotemporal air quality data into hyper-personalized, proactive, and actionable health guidance. It features:
-- **Spatial AQI Engine**: PostGIS spatial queries (`ST_DWithin`, `ST_Distance`) with Inverse Distance Weighting (IDW) interpolation explicitly tagged as estimated.
-- **Context-Grounded GenAI Copilot**: Google Gemini API integration with strict citation guardrails and a zero-dependency **Deterministic Fallback Engine** calibrated to US EPA and WHO 2021 standards.
-- **Dose Minimization Routine Planner**: Diurnal curve integration calculating inhaled particulate lung dose ($\mu\text{g}$).
-- **Indoor Mass-Balance CADR Optimizer**: Physical differential equations for clean air delivery rates and HEPA filter loading.
-- **Sustainable Action Simulator**: Strict mathematical and visual separation of **Emissions Avoided** ($kg\text{ CO}_2\text{e}$) from **Personal Exposure Reduction** ($\mu\text{g/m}^3\cdot h$).
-- **Family Health Shield**: Geofenced alerts tailored for sensitive groups (asthmatics, children, elderly, pregnant).
-- **Interactive 3D Earth**: WebGL globe powered by React Three Fiber and an optimized 2.57 MB Earth asset with a WCAG-compliant 2D tabular fallback.
+## Chosen vertical and persona
+Urban residents who are sensitive to air pollution or exercise outdoors: people with asthma or
+heart conditions, parents of young children, older adults, pregnant people, runners, cyclists and
+commuters. Each gets a decision tailored to their own context instead of a raw number.
 
----
-
-## 2. Monorepo Structure
-
+## How it works
 ```
-aether-ai/
-├── apps/
-│   ├── api/                   # Python FastAPI Backend (uv managed)
-│   │   ├── app/
-│   │   │   ├── api/v1/        # Endpoints (Health, Info, Modules)
-│   │   │   ├── core/          # Config, Circuit Breaker, Security
-│   │   │   ├── schemas/       # Pydantic v2 schemas
-│   │   │   └── main.py        # FastAPI entrypoint
-│   │   ├── tests/             # Pytest suite
-│   │   └── pyproject.toml     # uv dependencies
-│   │
-│   └── web/                   # Next.js 15 App Router Frontend (pnpm)
-│       ├── src/app/           # Accessible pages and layout
-│       └── package.json
-│
-├── packages/
-│   ├── standards/             # EPA Breakpoints & WHO 2021 Reference Constants
-│   └── contracts/             # Shared TypeScript API schemas
-│
-├── docker/
-│   ├── docker-compose.yml     # PostgreSQL 16 + PostGIS & Redis
-│   └── init-postgis.sql       # PostGIS extension bootstrap
-│
-├── pnpm-workspace.yaml        # pnpm workspace definition
-├── package.json               # Root monorepo script orchestrator
-└── README.md
+Browser form ──▶ POST /api/advice ──▶ profile (form + note parsing)
+                                  ──▶ Open-Meteo geocoding + air quality (cached)
+                                  ──▶ rule engine: verdict, reasons, actions, best window
+                                  ──▶ Gemini explains the verdict (falls back to rules)
 ```
+1. **Context in.** Location (name or GPS), sensitive groups, planned activity and an optional
+   free-text note such as *"I have asthma and want to jog this evening"*. The note is parsed
+   deterministically (with negation handling: "no asthma" is respected). Explicit form fields
+   always win over the note.
+2. **Live data.** Current US AQI, per-pollutant sub-indices (PM2.5, PM10, NO₂, O₃, SO₂, CO) and a
+   24-hour forecast from the free [Open-Meteo](https://open-meteo.com/) APIs (no key needed).
+3. **Decision logic (`rules.py`).** An *exposure-adjusted AQI* = measured AQI × multiplier, where the
+   multiplier adds +25% per sensitive group (capped at +50%) and an activity bonus (commute +5%,
+   cycling +10%, running +15%). It is mapped to the EPA bands: **go** ≤ 50, **caution** ≤ 100,
+   **limit** ≤ 150, **avoid** > 150. The same air gives different verdicts to different people.
+4. **Actionable output.** Reasons ("PM2.5 is the main pollutant"), concrete actions (N95 mask,
+   inhaler within reach, move exercise indoors, quieter streets for NO₂, mornings for ozone) and
+   the cleanest 2-hour window in the next 24 hours.
+5. **Gen AI explanation.** Gemini turns the structured decision into 2–3 friendly sentences that
+   reflect the user's note. If there is no key, the call fails or the output fails validation, a
+   deterministic explanation is used, so the app never breaks.
 
----
+## Design decisions
+- **The LLM never decides safety.** The verdict is rule-based, transparent and unit-tested; Gemini
+  only explains it. A prompt-injection attempt in the note cannot change the verdict (tested).
+- **Graceful degradation.** Works without any API key and survives upstream outages with clear
+  errors (404 unknown place, 502 data service down, 429 rate limited).
+- **Small and fast.** Async HTTP, a bounded TTL cache (10 min), no front-end build step, repo well
+  under 10 MB.
 
-## 3. Environment & Prerequisites Inspection Report
+## Security
+- Secrets only via environment variables (`.env.example` provided, `.env` git-ignored).
+- Strict input validation with Pydantic (`extra="forbid"`, length limits, enum-restricted fields).
+- Per-client sliding-window rate limit on the API; bounded in-memory state.
+- Security headers on every response: CSP (no inline scripts or styles), `nosniff`,
+  `no-referrer`, `frame-ancestors 'none'`, `Permissions-Policy`; `no-store` on API responses.
+- The front end writes to the DOM only with `textContent` (no `innerHTML`), so no XSS sink.
+- LLM safety: user note is delimited and marked untrusted; output must be JSON, ≤ 600 characters
+  and link-free or it is discarded.
+- Runs as a non-root user in the container; CI uses read-only permissions.
 
-| Component | Status | Detected Version | Action Required |
-| :--- | :--- | :--- | :--- |
-| **Node.js** | Installed | `v26.11.1` | None |
-| **npm** | Installed | `12.2.0` | None |
-| **pnpm** | **MISSING** | Not in PATH | **Install pnpm** (see instructions below) |
-| **Python** | Installed | `3.14.7` | None |
-| **uv** | Installed | `0.12.21` | None |
-| **Docker** | Installed | System binary present | Start Docker daemon (`systemctl start docker`) |
-| **Docker Compose** | Installed | `5.5.1` | None |
-| **Git** | Installed | `2.56.0` | Initialized |
+## Accessibility
+Semantic landmarks and a skip link; every control has a visible label; fieldset/legend for the
+group choices; verdicts use **text + icon, never colour alone**; WCAG AA contrast in light and
+dark mode; `aria-live` results region that receives focus after submit; errors announced with
+`role="alert"` and `aria-invalid`; forecast as a real data table (not only a chart); 44 px touch
+targets; visible focus rings; respects `prefers-reduced-motion`; works fully by keyboard.
 
-### Installing Missing `pnpm`
-Per project decisions, system packages are never installed silently. To install `pnpm`, run one of the following in your shell:
+## Testing
+75 tests, ~99% coverage (CI fails under 85%): AQI band boundaries, every verdict threshold,
+persona rules, best-window selection with missing data, the note parser (incl. negations), the
+Open-Meteo client (mocked HTTP, caching, error mapping), Gemini success and every failure path,
+prompt-injection, rate limiting, security headers and input validation.
+
 ```bash
-# Recommended via npm:
-npm install -g pnpm
-
-# Or via official standalone installer:
-curl -fsSL https://get.pnpm.io/install.sh | sh
+pip install -r requirements-dev.txt
+ruff check .
+pytest
 ```
 
----
-
-## 4. Quickstart Setup Guide
-
-### Step 1: Start Persistence Layer (PostGIS & Redis)
-Ensure Docker daemon is running, then launch the database and cache:
+## Run locally
 ```bash
-cd docker
-docker compose up -d
-
-# Verify PostGIS healthcheck:
-docker compose ps
+pip install -r requirements.txt
+cp .env.example .env            # optional: add GEMINI_API_KEY
+export $(grep -v '^#' .env | xargs)   # or set variables your own way
+PYTHONPATH=src uvicorn aether.api:app --reload
+# open http://localhost:8000
 ```
 
-### Step 2: Configure Environment Variables
-Copy the example environment configuration in the backend:
+## Deploy (Google Cloud Run)
 ```bash
-cd apps/api
-cp .env.example .env
-
-# Edit .env and supply your Gemini API Key:
-# GEMINI_API_KEY=your_key_here
+gcloud run deploy aether-ai --source . --region asia-south1 --allow-unauthenticated \
+  --set-secrets GEMINI_API_KEY=gemini-api-key:latest
 ```
 
-### Step 3: Backend Setup & Health Check (FastAPI + uv)
-```bash
-cd apps/api
-
-# Sync dependencies using uv:
-uv sync
-
-# Run backend test suite:
-uv run pytest
-
-# Launch FastAPI development server:
-uv run uvicorn app.main:app --reload --port 8000
+## Project layout
 ```
-Test endpoints:
-- Liveness Probe: `http://localhost:8000/api/v1/health`
-- Readiness Probe: `http://localhost:8000/api/v1/ready`
-- System Diagnostics: `http://localhost:8000/api/v1/info`
-- Interactive OpenAPI Docs: `http://localhost:8000/docs`
-
-### Step 4: Frontend Setup (Next.js + pnpm)
-Once `pnpm` is installed:
-```bash
-# Install workspace dependencies from repo root:
-pnpm install
-
-# Start Next.js development server:
-pnpm dev
+src/aether/   api.py (routes) · rules.py (decision engine) · airdata.py (Open-Meteo)
+              advisor.py (Gemini + fallback) · profiles.py (note parsing) · security.py
+              models.py · aqi.py · config.py · static/ (HTML, CSS, JS)
+tests/        pytest suite     .github/workflows/ci.yml     Dockerfile
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
 
----
-
-## 5. 3D Earth GLB Asset Inspection Findings
-
-The candidate 2.57 MB Earth asset (`earth (1).glb`) was inspected:
-- **Size**: 2,691,220 bytes (2.57 MB)
-- **glTF Specification**: Version 2.0 binary (`GLB`)
-- **Extensions**: `extensionsUsed: []`, `extensionsRequired: []` (Standard geometry, no Draco compression applied)
-- **Components**: 2 meshes (surface + cloud/atmosphere layer), 6 textures, 2 materials, 1 animation track.
-- **Recommendation**: Because standard meshes are low-poly spheres and textures account for ~90% of file size, applying Draco geometry compression would save negligible bandwidth while imposing a ~150ms client-side WebAssembly decompression penalty on mobile devices. We will load the GLB natively via `@react-three/drei`'s `useGLTF` with `frameloop="demand"` for optimal battery and GPU efficiency.
-
----
-
-## 6. Architecture & Quality Principles
-
-1. **Dual-Encoding Accessibility**: Colors are never the sole indicator of danger; always accompanied by text badges, units ($\mu\text{g/m}^3$), and icons.
-2. **Resilient AI**: Circuit breaker trips gracefully to the Deterministic Fallback Engine during rate limits (HTTP 429) or network partitions.
-3. **Transparent Science**: Indoor mass balance, integral outdoor dose, and emission avoidance calculations are documented and mathematically defensible.
+## Assumptions and limits
+- AQI follows the US EPA scale as reported by Open-Meteo (modelled, not a street-level sensor).
+- Multipliers are a simple, documented heuristic for prioritising caution, not clinical thresholds.
+- Guidance is general and **not medical advice**; users with conditions should follow their doctor.
+- The rate limiter and cache are per process; use a shared store if scaling to many instances.
