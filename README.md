@@ -101,15 +101,28 @@ verdicts and AQI shown as number + text + icon, never colour alone; an `aria-liv
 that receives focus; the forecast is also available as a data table; visible focus;
 `prefers-reduced-motion` respected; fully keyboard operable; no horizontal scroll at 375 px.
 
+## Code layout
+| Path | Role |
+|---|---|
+| `src/aether/api.py` | FastAPI app: router, typed `Services`, throttle dependency, security middleware |
+| `airdata.py`, `stations.py` | Open-Meteo (CAMS) and OpenAQ clients: bounded retries, TTL caches, untrusted-input parsing |
+| `rules.py`, `planner.py`, `indoor.py`, `commute.py` | Deterministic decisions: verdicts, cleanest windows, dose, CADR, emissions |
+| `advisor.py` | Gemini briefing, grounded on plan facts, with a rules fallback |
+| `static/js/format.js` | Pure helpers (unit-tested with `node:test`) |
+| `static/js/dom.js` | Safe DOM builders (`textContent` only) shared by both pages |
+| `static/js/household.js`, `render.js`, `app.js` | Planner form state, result cards, page wiring |
+| `static/js/live.js`, `motion.js`, `cursor.js` | Landing live widget, motion, custom cursor |
+
 ## Checks
 ```bash
 uv sync
 uv run ruff check . && uv run ruff format --check .
 uv run mypy            # strict
-uv run pytest          # 163 tests, 100% coverage (fails under 90%)
+uv run pytest          # 164 tests, 100% coverage (fails under 90%)
 node --test tests/js/  # front-end helpers
-npm ci && npx playwright install chromium
-npx playwright test    # 28 browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
+npm ci && npm run lint # ESLint on the front end and the browser tests
+npx playwright install chromium
+npx playwright test    # 30 browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
 ```
 The browser tests run the real front end and API against fixed air data
 (`tests/e2e/fixture_app.py`), so they need no network or API key. They check the landing page (focus moves with in-page links, reduced motion), the whole flow,
