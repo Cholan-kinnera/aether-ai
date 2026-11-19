@@ -8,13 +8,13 @@ import re
 import secrets
 import time
 import uuid
-from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Annotated, Protocol, cast
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -33,19 +33,137 @@ from .security import SECURITY_HEADERS, RateLimiter, client_ip
 from .service import build_plan
 from .stations import OpenAQClient, StationLookup
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Awaitable, Callable
+
 STATIC_DIR = Path(__file__).parent / "static"
 BRIEFING_TTL_SECONDS = 300
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 log = logging.getLogger("aether")
 
 
+class StationProvider(Protocol):
+    """Finds the nearest monitoring station; never raises (see stations.OpenAQClient)."""
+
+    async def nearest(self, latitude: float, longitude: float) -> StationLookup:
+        """Return the nearest station observation and a status."""
+
+
+@dataclass(frozen=True, slots=True)
+class Services:
+    """Everything a request needs, built once per app at startup."""
+
+    settings: Settings
+    limiter: RateLimiter
+    pending: TTLCache[tuple[PlanResponse, str | None]]
+    air: AirDataProvider
+    stations: StationProvider
+    advisor: Advisor
+
+
 def _log(**fields: object) -> None:
-    """One JSON line per event; never includes request bodies or secrets."""
+    """Write one JSON line per event; never includes request bodies or secrets."""
     log.info(json.dumps(fields, separators=(",", ":")))
 
 
-class StationProvider(Protocol):
-    async def nearest(self, latitude: float, longitude: float) -> StationLookup: ...
+def get_services(request: Request) -> Services:
+    """Return the app's services (a FastAPI dependency)."""
+    return cast("Services", request.app.state.services)
+
+
+ServicesDep = Annotated[Services, Depends(get_services)]
+
+
+def throttle(request: Request, svc: ServicesDep) -> None:
+    """Reject the request with 429 when its client is over the per-minute limit."""
+    peer = request.client.host if request.client else None
+    who = client_ip(peer, request.headers.get("x-forwarded-for"), svc.settings.trusted_proxy_hops)
+    retry_after = svc.limiter.check(who)
+    if retry_after:
+        raise HTTPException(
+            429,
+            "too many requests, please slow down",
+            headers={"Retry-After": str(int(retry_after))},
+        )
+
+
+async def observe(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    """Add security and cache headers and a request id; log API calls."""
+    incoming = request.headers.get("x-request-id", "")
+    request_id = incoming if _REQUEST_ID.match(incoming) else uuid.uuid4().hex
+    started = time.perf_counter()
+    response = await call_next(request)
+    response.headers.update(SECURITY_HEADERS)
+    response.headers["X-Request-ID"] = request_id
+    if not request.url.path.startswith("/api/"):
+        # Revalidate the page and assets (cheap via ETag) so a deploy is never served stale.
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+    response.headers["Cache-Control"] = "no-store"
+    _log(
+        event="request",
+        request_id=request_id,
+        method=request.method,
+        path=request.url.path,
+        status=response.status_code,
+        ms=round((time.perf_counter() - started) * 1000, 1),
+    )
+    return response
+
+
+async def air_error(_: Request, exc: Exception) -> Response:
+    """Map upstream air-data failures to 404 (unknown place) or 502 (provider down)."""
+    status = 404 if isinstance(exc, LocationNotFoundError) else 502
+    return JSONResponse({"detail": str(exc)}, status_code=status)
+
+
+router = APIRouter()
+
+
+@router.get("/api/health")
+async def health() -> dict[str, str]:
+    """Liveness probe."""
+    return {"status": "ok"}
+
+
+@router.post("/api/plan", dependencies=[Depends(throttle)])
+async def plan(body: PlanRequest, svc: ServicesDep) -> PlanResponse:
+    """Deterministic plan, returned at once with a rule-based briefing."""
+    snapshot = await svc.air.snapshot(
+        location=body.location, latitude=body.latitude, longitude=body.longitude
+    )
+    station = await svc.stations.nearest(snapshot.latitude, snapshot.longitude)
+    result = build_plan(snapshot, body, station)
+    briefing_id = secrets.token_urlsafe(16)
+    svc.pending.put(briefing_id, (result, body.note))
+    return result.model_copy(
+        update={"explanation": rules_briefing(result), "briefing_id": briefing_id}
+    )
+
+
+@router.post("/api/briefing/{briefing_id}", dependencies=[Depends(throttle)])
+async def briefing(briefing_id: str, svc: ServicesDep) -> Briefing:
+    """Single-use AI briefing for a plan created in the last few minutes."""
+    entry = svc.pending.pop(briefing_id)
+    if entry is None:
+        raise HTTPException(404, "briefing expired, please plan again")
+    result, note = entry
+    text, source = await svc.advisor.explain(result, note)
+    return Briefing(explanation=text, explanation_source=source)
+
+
+@router.get("/", include_in_schema=False)
+async def index() -> FileResponse:
+    """Landing page."""
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@router.get("/plan", include_in_schema=False)
+async def planner() -> FileResponse:
+    """Planner page."""
+    return FileResponse(STATIC_DIR / "plan.html")
 
 
 def create_app(
@@ -54,115 +172,38 @@ def create_app(
     advisor: Advisor | None = None,
     stations: StationProvider | None = None,
 ) -> FastAPI:
+    """Build the app. Tests pass fakes for the upstream providers."""
     settings = settings or Settings.from_env()
-    limiter = RateLimiter(settings.rate_limit_per_minute)
-    pending: TTLCache[tuple[PlanResponse, str | None]] = TTLCache(BRIEFING_TTL_SECONDS)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         timeout = httpx.Timeout(settings.request_timeout_seconds, connect=4)
-        client = httpx.AsyncClient(timeout=timeout, headers={"User-Agent": "aether-ai"})
-        app.state.air = air or OpenMeteoClient(client, settings.cache_ttl_seconds)
-        app.state.stations = stations or OpenAQClient(
-            client, settings.openaq_api_key, settings.cache_ttl_seconds
-        )
-        app.state.advisor = advisor or GeminiAdvisor(
-            settings.gemini_api_key,
-            settings.gemini_model,
-            client,
-            settings.gemini_calls_per_minute,
-        )
-        try:
+        async with httpx.AsyncClient(timeout=timeout, headers={"User-Agent": "aether-ai"}) as http:
+            app.state.services = Services(
+                settings=settings,
+                limiter=RateLimiter(settings.rate_limit_per_minute),
+                pending=TTLCache(BRIEFING_TTL_SECONDS),
+                air=air or OpenMeteoClient(http, settings.cache_ttl_seconds),
+                stations=stations
+                or OpenAQClient(http, settings.openaq_api_key, settings.cache_ttl_seconds),
+                advisor=advisor
+                or GeminiAdvisor(
+                    settings.gemini_api_key,
+                    settings.gemini_model,
+                    http,
+                    settings.gemini_calls_per_minute,
+                ),
+            )
             yield
-        finally:
-            await client.aclose()
 
     app = FastAPI(title="AETHER", version="2.0.0", lifespan=lifespan, docs_url=None, redoc_url=None)
     # Plan JSON and app.js are several KB; compress anything over 1 KB.
     app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
-
-    @app.middleware("http")
-    async def observe(
-        request: Request, call_next: Callable[[Request], Awaitable[Response]]
-    ) -> Response:
-        incoming = request.headers.get("x-request-id", "")
-        request_id = incoming if _REQUEST_ID.match(incoming) else uuid.uuid4().hex
-        started = time.perf_counter()
-        response = await call_next(request)
-        for name, value in SECURITY_HEADERS.items():
-            response.headers[name] = value
-        response.headers["X-Request-ID"] = request_id
-        if not request.url.path.startswith("/api/"):
-            # Revalidate the page and assets (cheap via ETag) so a deploy is never served stale.
-            response.headers["Cache-Control"] = "no-cache"
-        else:
-            response.headers["Cache-Control"] = "no-store"
-            _log(
-                event="request",
-                request_id=request_id,
-                method=request.method,
-                path=request.url.path,
-                status=response.status_code,
-                ms=round((time.perf_counter() - started) * 1000, 1),
-            )
-        return response
-
-    @app.exception_handler(AirDataError)
-    async def air_error(_: Request, exc: AirDataError) -> JSONResponse:
-        status = 404 if isinstance(exc, LocationNotFoundError) else 502
-        return JSONResponse({"detail": str(exc)}, status_code=status)
-
-    @app.get("/api/health")
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
-
-    def throttle(request: Request) -> None:
-        peer = request.client.host if request.client else None
-        who = client_ip(peer, request.headers.get("x-forwarded-for"), settings.trusted_proxy_hops)
-        retry_after = limiter.check(who)
-        if retry_after:
-            raise HTTPException(
-                429,
-                "too many requests, please slow down",
-                headers={"Retry-After": str(int(retry_after))},
-            )
-
-    @app.post("/api/plan")
-    async def plan(body: PlanRequest, request: Request) -> PlanResponse:
-        """Deterministic plan, returned at once with a rule-based briefing."""
-        throttle(request)
-        snapshot = await request.app.state.air.snapshot(
-            location=body.location, latitude=body.latitude, longitude=body.longitude
-        )
-        station = await request.app.state.stations.nearest(snapshot.latitude, snapshot.longitude)
-        result = build_plan(snapshot, body, station)
-        briefing_id = secrets.token_urlsafe(16)
-        pending.put(briefing_id, (result, body.note))
-        return result.model_copy(
-            update={"explanation": rules_briefing(result), "briefing_id": briefing_id}
-        )
-
-    @app.post("/api/briefing/{briefing_id}")
-    async def briefing(briefing_id: str, request: Request) -> Briefing:
-        """Single-use AI briefing for a plan created in the last few minutes."""
-        throttle(request)
-        entry = pending.pop(briefing_id)
-        if entry is None:
-            raise HTTPException(404, "briefing expired, please plan again")
-        result, note = entry
-        text, source = await request.app.state.advisor.explain(result, note)
-        return Briefing(explanation=text, explanation_source=source)
-
-    @app.get("/", include_in_schema=False)
-    async def index() -> FileResponse:
-        return FileResponse(STATIC_DIR / "index.html")
-
-    @app.get("/plan", include_in_schema=False)
-    async def planner() -> FileResponse:
-        return FileResponse(STATIC_DIR / "plan.html")
-
+    app.middleware("http")(observe)
+    app.add_exception_handler(AirDataError, air_error)
+    app.include_router(router)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     return app
 
