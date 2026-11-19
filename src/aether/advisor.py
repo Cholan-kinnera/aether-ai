@@ -72,6 +72,7 @@ def plan_facts(plan: PlanResponse) -> dict[str, Any]:
                 "activity": s.activity.value,
                 "start": s.window.start[11:16] if s.window else None,
                 "verdict": s.verdict.value if s.verdict else None,
+                "exposure_impact": s.exposure_note,
             }
             for s in plan.schedule
         ],

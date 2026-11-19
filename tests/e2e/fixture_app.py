@@ -18,7 +18,10 @@ class FixtureAir:
     ) -> AirSnapshot:
         if location and location.lower() == "nowhere":
             raise LocationNotFoundError("could not find a place called 'Nowhere'")
-        return make_snapshot(aqi=170, hourly=HOURLY, pm25=95.0, name=f"{location}, Test State")
+        snap = make_snapshot(aqi=170, hourly=HOURLY, pm25=95.0, name=f"{location}, Test State")
+        # PM2.5 tracks the AQI curve so the planner can show the exposure saved by waiting.
+        hourly = [p.model_copy(update={"pm2_5": (p.us_aqi or 0) * 0.55}) for p in snap.hourly]
+        return snap.model_copy(update={"hourly": hourly})
 
 
 def app():  # type: ignore[no-untyped-def]

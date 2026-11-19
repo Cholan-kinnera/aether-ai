@@ -254,6 +254,7 @@ function renderSchedule(d) {
         li.append(verdictBadge(s.verdict));
       }
       li.append(el("p", s.advice));
+      if (s.exposure_note) li.append(el("p", s.exposure_note, "help"));
       ol.append(li);
     });
     section.append(ol);

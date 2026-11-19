@@ -170,6 +170,10 @@ class ScheduledActivity(BaseModel):
     window: TimeWindow | None
     verdict: Verdict | None
     advice: str
+    # Personal exposure (micro), never emissions: PM2.5 breathed in during the activity.
+    inhaled_pm25_ug: float | None = None
+    inhaled_pm25_now_ug: float | None = None
+    exposure_note: str | None = None
 
 
 class IndoorAdvice(BaseModel):

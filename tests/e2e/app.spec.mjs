@@ -49,6 +49,8 @@ test("household plan shows verdicts, provenance, schedule, indoor and commute", 
     await expect(results.getByRole("heading", { name })).toBeVisible();
   }
   await expect(results.getByRole("heading", { name: /Greener commute/ })).toBeVisible();
+  // The routine explains the impact of the chosen time as personal exposure.
+  await expect(results.getByText(/% less exposure from choosing this time/)).toBeVisible();
   // Macro (kg CO2e) and micro (inhaled PM2.5) stay separate.
   await expect(results.getByText(/kg CO2e per week/).first()).toBeVisible();
   await expect(results.getByText(/breathe in more particles per trip/).first()).toBeVisible();
