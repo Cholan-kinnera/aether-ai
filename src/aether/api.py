@@ -14,6 +14,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -69,6 +70,8 @@ def create_app(
             await client.aclose()
 
     app = FastAPI(title="AETHER", version="2.0.0", lifespan=lifespan, docs_url=None, redoc_url=None)
+    # Plan JSON and app.js are several KB; compress anything over 1 KB.
+    app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
 
     @app.middleware("http")
     async def observe(
