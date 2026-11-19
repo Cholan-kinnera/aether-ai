@@ -3,23 +3,116 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="AETHER plans your family's day around winter smog: safest hours outdoors, indoor air steps and greener commutes, with the impact of each choice explained.">
-  <meta name="theme-color" content="#0b3d5c">
+  <meta name="description" content="AETHER plans your family's day around winter smog: who should go out and when, how to keep indoor air clean, and what a greener commute changes, from the CAMS forecast and the nearest official monitor.">
+  <meta name="theme-color" content="#1c2b3d">
+  <meta property="og:title" content="AETHER: plan your family's day around the smog">
+  <meta property="og:description" content="Cleanest hours for each person at home, indoor air steps and greener trips, with the impact of every choice explained.">
   <title>AETHER – Urban Air Quality Assistant</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230b5cad'/%3E%3Cpath d='M8 18c4-6 12-6 16 0' stroke='white' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%231c2b3d'/%3E%3Ccircle cx='21' cy='12' r='4' fill='%23f3dfb0'/%3E%3Cpath d='M5 22c4-3 7-3 11 0s7 3 11 0' stroke='%2379b4d6' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
+  <link rel="preload" href="/static/vendor/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/vendor/fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
-  <header class="site-header">
-    <div class="wrap">
-      <p class="brand" aria-hidden="true">AETHER</p>
-      <h1>Plan your family's day around the smog</h1>
-      <p class="lede">Safest hours outdoors, indoor air steps and greener trips, tailored to your household, with the impact of every choice explained.</p>
-    </div>
+
+  <div class="sky" aria-hidden="true">
+    <div class="sky-layer sky-smog"></div>
+    <div class="sky-layer sky-clear"></div>
+    <div class="sun"></div>
+    <svg class="skyline" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" focusable="false">
+      <path class="city city-far" d="M0 900 V760 H0 V620 H20 V602 H40 V620 H60 V760 H60 V448 H74 V430 H88 V448 H104 V760 H106 V626 H183 V760 H184 V636 H198 V618 H212 V636 H226 V760 H226 V635 H244 V617 H262 V635 H281 V760 H281 V609 H357 V760 H362 V491 H442 V760 H446 V577 A38 38 0 0 1 523 577 V760 H524 V498 H566 V760 H568 V622 H590 V604 H612 V622 H634 V760 H638 V497 H697 V760 H698 V510 H713 V492 H728 V510 H744 V760 H745 V634 H766 V616 H787 V634 H808 V760 H808 V643 H833 V625 H858 V643 H884 V760 H887 V522 H914 V504 H941 V522 H970 V760 H972 V491 H1041 V760 H1043 V577 H1102 V760 H1107 V608 L1151 538 L1196 608 V760 H1198 V514 H1271 V760 H1276 V585 H1298 V567 H1320 V585 H1344 V760 H1344 V527 H1359 V509 H1374 V527 H1391 V760 H1397 V602 H1458 V760 H1461 V490 A21 21 0 0 1 1503 490 V760 H1507 V438 H1583 V760 H1585 V481 H1605 V463 H1625 V481 H1646 V760 H1600 V900 Z"/>
+      <path class="city city-mid" d="M0 900 V810 H0 V577 H107 V810 H113 V623 H149 V605 H185 V623 H222 V810 H226 V673 H300 V810 H303 V714 H327 V696 H351 V714 H376 V810 H377 V583 H438 V810 H443 V568 H498 V810 H501 V596 A35 35 0 0 1 571 596 V810 H575 V734 A29 29 0 0 1 633 734 V810 H634 V620 H651 V602 H668 V620 H687 V810 H691 V606 H716 V588 H741 V606 H766 V810 H768 V737 H805 V719 H842 V737 H881 V810 H884 V616 H969 V810 H975 V673 H995 V655 H1015 V673 H1035 V810 H1036 V704 A57 57 0 0 1 1151 704 V810 H1155 V658 H1170 V618 H1202 V658 H1218 V810 H1220 V703 H1319 V810 H1325 V684 H1341 V666 H1357 V684 H1375 V810 H1375 V624 H1485 V810 H1488 V720 H1522 V702 H1556 V720 H1591 V810 H1592 V664 L1634 594 L1676 664 V810 H1600 V900 Z"/>
+      <path class="city city-near" d="M0 900 V860 H0 V734 H26 V694 H80 V734 H107 V860 H111 V764 H147 V746 H183 V764 H220 V860 H222 V726 H250 V708 H278 V726 H308 V860 H311 V790 H334 V772 H357 V790 H382 V860 H382 V790 H465 V860 H468 V816 H509 V798 H550 V816 H591 V860 H596 V755 H721 V860 H722 V743 H746 V725 H770 V743 H796 V860 H797 V773 H946 V860 H948 V703 H1090 V860 H1094 V716 H1200 V860 H1204 V714 H1230 V696 H1256 V714 H1284 V860 H1289 V725 H1420 V860 H1425 V777 H1515 V860 H1519 V714 H1630 V860 H1600 V900 Z"/>
+      <path class="city trees" d="M0 900 V880 H0 A37 37 0 0 1 74 880 H66 A41 41 0 0 1 148 880 H139 A40 40 0 0 1 219 880 H205 A34 34 0 0 1 273 880 H269 A32 32 0 0 1 333 880 H326 A38 38 0 0 1 402 880 H398 A23 23 0 0 1 444 880 H439 A29 29 0 0 1 497 880 H486 A25 25 0 0 1 536 880 H526 A35 35 0 0 1 596 880 H591 A36 36 0 0 1 663 880 H656 A18 18 0 0 1 692 880 H685 A31 31 0 0 1 747 880 H739 A23 23 0 0 1 785 880 H775 A23 23 0 0 1 821 880 H816 A22 22 0 0 1 860 880 H847 A37 37 0 0 1 921 880 H910 A22 22 0 0 1 954 880 H948 A18 18 0 0 1 984 880 H980 A24 24 0 0 1 1028 880 H1021 A23 23 0 0 1 1067 880 H1061 A27 27 0 0 1 1115 880 H1106 A24 24 0 0 1 1154 880 H1142 A39 39 0 0 1 1220 880 H1206 A24 24 0 0 1 1254 880 H1248 A40 40 0 0 1 1328 880 H1321 A30 30 0 0 1 1381 880 H1373 A18 18 0 0 1 1409 880 H1400 A31 31 0 0 1 1462 880 H1456 A22 22 0 0 1 1500 880 H1492 A20 20 0 0 1 1532 880 H1523 A27 27 0 0 1 1577 880 H1564 A36 36 0 0 1 1636 880 H1600 V900 Z"/>
+    </svg>
+    <div class="haze haze-1"></div>
+    <div class="haze haze-2"></div>
+    <div class="haze haze-3"></div>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="#top" data-scroll>
+      <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="21" cy="12" r="4"/><path d="M4 22c4-3 8-3 12 0s8 3 12 0"/></svg>
+      <span>AETHER</span>
+    </a>
+    <nav aria-label="Page sections">
+      <a href="#how" data-scroll>How it decides</a>
+      <a href="#data" data-scroll>Where the numbers come from</a>
+      <a class="nav-cta" href="#planner" data-scroll>Plan my day</a>
+    </nav>
   </header>
 
-  <main id="main" class="wrap">
+  <main id="main" tabindex="-1">
+    <section class="hero" id="top" tabindex="-1" aria-labelledby="hero-title">
+      <div class="glass hero-copy">
+        <h1 id="hero-title">Winter smog thins out. Plan your family&#8217;s day around it.</h1>
+        <p class="hero-lede">AETHER reads the smog forecast for your city and the nearest official monitor, then tells everyone at home when to go out, how to keep the air indoors clean, and what a greener commute really changes.</p>
+        <div class="hero-actions">
+          <a class="button" href="#planner" data-scroll>Plan my family&#8217;s day</a>
+          <a class="button ghost" href="#how" data-scroll>How it decides</a>
+        </div>
+        <p class="hero-note">Free, no sign-up. Your household is saved only on this device.</p>
+      </div>
+      <p class="scroll-cue">Scroll, and watch the haze lift</p>
+    </section>
+
+    <section class="band" id="features" aria-labelledby="features-title">
+      <div class="glass wide">
+        <h2 id="features-title">One plan for everyone at home</h2>
+        <dl class="legend">
+          <div>
+            <dt><svg class="icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="11" cy="10" r="4"/><circle cx="22" cy="12" r="3"/><path d="M4 26c0-5 3-8 7-8s7 3 7 8M17 26c0-4 2-6 5-6s5 2 5 6"/></svg>Who should go out</dt>
+            <dd>A verdict for each person, stricter for asthma, children, older adults, pregnancy and heart conditions. The household follows the most careful one.</dd>
+          </div>
+          <div>
+            <dt><svg class="icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="11"/><path d="M16 9v7l5 3"/></svg>When to go</dt>
+            <dd>Each walk, game or errand moved to its cleanest forecast hours, with the PM2.5 you avoid breathing by waiting.</dd>
+          </div>
+          <div>
+            <dt><svg class="icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M5 15 16 6l11 9v11H5z"/><path d="M12 26v-6h8v6M10 15h0"/></svg>Air at home</dt>
+            <dd>Whether your purifier is big enough for the room, how fast it cleans the air, and the one hour worth opening a window.</dd>
+          </div>
+          <div>
+            <dt><svg class="icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="9" cy="22" r="4"/><circle cx="24" cy="22" r="4"/><path d="M9 22l5-9h6l4 9M14 13l-2-4h-3"/></svg>Getting around</dt>
+            <dd>The carbon each way to travel emits, shown next to the smoke you would breathe on the way. On smoggy days the two disagree, and AETHER says so.</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="band" id="how" tabindex="-1" aria-labelledby="how-title">
+      <div class="glass wide">
+        <h2 id="how-title">How it decides</h2>
+        <ol class="steps">
+          <li><h3>You tell it who is at home</h3><p>A name or role and any sensitivities for each person, plus today&#8217;s plans. Names never reach the AI.</p></li>
+          <li><h3>It reads the air</h3><p>The next 24 hours of the Copernicus CAMS forecast, and the nearest reference monitor, such as a CPCB station, through OpenAQ.</p></li>
+          <li><h3>Published rules decide</h3><p>EPA AQI categories and health guidance set every verdict, the same way every time. No guesswork, no model in the loop.</p></li>
+          <li><h3>Gemini explains</h3><p>Google Gemini turns the finished plan into a short briefing in plain words. It cannot change a verdict or a number.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="band" id="data" tabindex="-1" aria-labelledby="data-title">
+      <div class="glass wide">
+        <h2 id="data-title">Forecast and measurement, side by side</h2>
+        <div class="sources">
+          <div>
+            <h3>Forecast</h3>
+            <p>A model estimate from Copernicus CAMS. It covers every street and the next 24 hours, so it drives the planning. Always labelled as an estimate.</p>
+          </div>
+          <div>
+            <h3>Measured</h3>
+            <p>The nearest official monitor within 25 km, exactly as its operator reports it, with its distance and age. Shown beside the forecast, never blended into it.</p>
+          </div>
+        </div>
+        <p class="sources-note">Anything older than three hours is marked stale. Missing readings stay missing.</p>
+      </div>
+    </section>
+
+    <section class="band planner" id="planner" tabindex="-1" aria-labelledby="planner-title">
+      <div class="glass wide">
+        <h2 id="planner-title">Plan your family&#8217;s day</h2>
     <form id="plan-form" novalidate aria-describedby="form-help">
       <p id="form-help" class="help">Only the location is required. Your household is saved on this device only.</p>
 
@@ -117,10 +210,12 @@
     </form>
 
     <section id="results" aria-live="polite" aria-busy="false" tabindex="-1" aria-label="Your plan"></section>
+      </div>
+    </section>
   </main>
 
-  <footer class="wrap">
-    <p>Air quality data by <a href="https://open-meteo.com/">Open-Meteo.com</a> (<a href="https://open-meteo.com/en/licence">CC BY 4.0</a>), based on Copernicus CAMS model forecasts. Station measurements via <a href="https://openaq.org/">OpenAQ</a> from each station's provider. Emission factors: UK DESNZ 2026. Inhalation rates: US EPA Exposure Factors Handbook. Briefings by Google Gemini when available.</p>
+  <footer class="site-footer">
+    <p>Air quality data by <a href="https://open-meteo.com/">Open-Meteo.com</a> (<a href="https://open-meteo.com/en/licence">CC BY 4.0</a>), based on Copernicus CAMS model forecasts. Station measurements via <a href="https://openaq.org/">OpenAQ</a> from each station&#8217;s provider. Emission factors: UK DESNZ 2026. Inhalation rates: US EPA Exposure Factors Handbook. Briefings by Google Gemini when available.</p>
     <p>General guidance only, not medical advice.</p>
   </footer>
 
@@ -179,6 +274,10 @@
     </li>
   </template>
 
+  <script src="/static/vendor/gsap.min.js" defer></script>
+  <script src="/static/vendor/ScrollTrigger.min.js" defer></script>
+  <script src="/static/vendor/lenis.min.js" defer></script>
+  <script src="/static/js/landing.js" defer></script>
   <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>
