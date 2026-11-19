@@ -70,6 +70,16 @@ Browser ──▶ POST /api/plan ──▶ Open-Meteo geocoding + CAMS air quali
 - Structured logs with request IDs; user text and secrets are never logged.
 - The container runs as a non-root user; CI has read-only permissions.
 
+## Design
+A landing page opens on a city skyline under winter smog. As you scroll, the haze lifts and the sky
+clears, which is the app's promise ("there is a cleaner hour") shown as a single scroll-driven
+moment (GSAP ScrollTrigger, Lenis smooth scrolling). Content sits on frosted-glass panels over
+the scene. The skyline is hand-built SVG, so there are no stock photos to license and the page
+stays light. Type is Bricolage Grotesque for display and Atkinson Hyperlegible Next, a face
+designed for low-vision readers, for reading. Scripts and fonts are vendored and served from our
+own origin (`src/aether/static/vendor`, licenses listed there), so the strict CSP stays intact.
+With `prefers-reduced-motion`, the sky starts clear, nothing animates and scrolling is native.
+
 ## Accessibility
 Skip link, landmarks and headings; every control is labelled; fieldsets for grouped choices;
 verdicts and AQI shown as number + text + icon, never colour alone; an `aria-live` results region
@@ -84,10 +94,10 @@ uv run mypy            # strict
 uv run pytest          # 163 tests, 100% coverage (fails under 90%)
 node --test tests/js/  # front-end helpers
 npm ci && npx playwright install chromium
-npx playwright test    # browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
+npx playwright test    # 14 browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
 ```
 The browser tests run the real front end and API against fixed air data
-(`tests/e2e/fixture_app.py`), so they need no network or API key. They check the whole flow,
+(`tests/e2e/fixture_app.py`), so they need no network or API key. They check the landing page (focus moves with in-page links, reduced motion), the whole flow,
 number + text + icon for the AQI, data-age labels, the separate CO2e and inhaled-dose figures,
 alerts for errors, keyboard access, reduced motion, no horizontal scroll, and zero axe violations
 before and after a plan is shown.
