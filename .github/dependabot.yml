@@ -1,6 +1,6 @@
 # Version-update pull requests are paused (limit 0) while the PromptWars challenge is judged, so
 # `main` stays the only branch. Vulnerabilities are still caught: pip-audit and npm audit run in
-# CI on every push, and Dependabot security alerts stay on. Raise the limits to resume updates.
+# CI on every push. Raise the limits to resume updates.
 version: 2
 updates:
   - package-ecosystem: uv

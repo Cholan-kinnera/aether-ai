@@ -61,8 +61,8 @@ The static gates (ruff, mypy, ESLint, tsc, Prettier) also run locally through `.
   factors, inhalation rates and `STALE_AFTER_MINUTES = 180`.
 - **Conventional commits**, one logical change per commit.
 - **Dependencies pinned exactly.** `uv.lock` (exported and audited by `pip-audit --require-hashes` in CI)
-  and `package-lock.json`, audited on every push. Dependabot security alerts are on; its update
-  pull requests are paused during judging so `main` stays the only branch.
+  and `package-lock.json`, audited on every push (`pip-audit`, `npm audit`). Dependabot update pull requests are paused
+  during judging so `main` stays the only branch.
 
 ## Reproduce
 ```bash
