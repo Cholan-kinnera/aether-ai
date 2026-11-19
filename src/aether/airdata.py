@@ -44,6 +44,33 @@ class AirDataProvider(Protocol):
     ) -> AirSnapshot: ...
 
 
+async def get_json(
+    http: httpx.AsyncClient,
+    url: str,
+    params: dict[str, Any],
+    headers: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """GET a JSON object with one retry on network errors and 429/5xx (each try time-bounded)."""
+    try:
+        for attempt in range(2):
+            try:
+                response = await http.get(url, params=params, headers=headers)
+            except httpx.TransportError:
+                if attempt:
+                    raise
+            else:
+                if attempt or response.status_code not in RETRY_STATUSES:
+                    break
+            await asyncio.sleep(RETRY_BACKOFF_SECONDS)
+        response.raise_for_status()
+        data = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise AirDataError("air quality service unavailable") from exc
+    if not isinstance(data, dict):
+        raise AirDataError("unexpected response from air quality service")
+    return data
+
+
 class TTLCache[T]:
     """Tiny bounded cache; the oldest entry is evicted first."""
 
@@ -79,25 +106,7 @@ class OpenMeteoClient:
         self._air: TTLCache[AirSnapshot] = TTLCache(cache_ttl_seconds)
 
     async def _get_json(self, url: str, params: dict[str, Any]) -> dict[str, Any]:
-        """GET JSON with one retry on network errors and 429/5xx (each try is time-bounded)."""
-        try:
-            for attempt in range(2):
-                try:
-                    response = await self._http.get(url, params=params)
-                except httpx.TransportError:
-                    if attempt:
-                        raise
-                else:
-                    if attempt or response.status_code not in RETRY_STATUSES:
-                        break
-                await asyncio.sleep(RETRY_BACKOFF_SECONDS)
-            response.raise_for_status()
-            data = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            raise AirDataError("air quality service unavailable") from exc
-        if not isinstance(data, dict):
-            raise AirDataError("unexpected response from air quality service")
-        return data
+        return await get_json(self._http, url, params)
 
     async def _geocode(self, name: str) -> tuple[str, float, float]:
         key = name.lower()
