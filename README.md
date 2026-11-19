@@ -1,12 +1,29 @@
 # AETHER – Urban Air Quality Assistant
 
-[![CI](https://github.com/Cholan-kinnera/aether-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Cholan-kinnera/aether-ai/actions)
+[![CI](https://github.com/Cholan-kinnera/aether-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Cholan-kinnera/aether-ai/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Cholan-kinnera/aether-ai/actions/workflows/codeql.yml/badge.svg)](https://github.com/Cholan-kinnera/aether-ai/actions/workflows/codeql.yml)
+
+**Live:** https://aether-ai-5fgm.onrender.com · **Planner:** https://aether-ai-5fgm.onrender.com/plan
 
 > One AQI number tells nobody what to do. **AETHER plans a household's day around the smog:**
 > who in the family should go out and when, how to keep the air at home clean, and what a greener
 > commute changes, with every number's source and age shown.
 
 **Challenge:** PromptWars Virtual – Challenge 6, *Urban Air Quality Assistant*.
+
+## At a glance
+
+| Criterion | Evidence | Headline |
+|---|---|---|
+| Problem alignment | [PROBLEM_ALIGNMENT.md](PROBLEM_ALIGNMENT.md) | 16 requirements traced to code and tests |
+| Code quality | [CODE_QUALITY.md](CODE_QUALITY.md) | Typed on both sides (mypy strict, tsc strict `--checkJs`), complexity ≤ 10, docstrings enforced |
+| Security | [SECURITY.md](SECURITY.md) | Strict CSP with Trusted Types, prompt-injection-proof decisions, CodeQL |
+| Efficiency | [EFFICIENCY.md](EFFICIENCY.md) | Lighthouse **100** for performance, accessibility, best practices and SEO on both pages, mobile and desktop; CLS 0 |
+| Testing | [TESTING.md](TESTING.md) | 164 backend tests at **100% coverage**, 34 browser tests, 6 helper tests |
+| Accessibility | [ACCESSIBILITY.md](ACCESSIBILITY.md) | WCAG 2.1 AA: zero axe violations at 1440 px and 375 px |
+
+Design decisions: [docs/adr](docs/adr) (rules decide and AI explains; forecast and measurement
+stay separate; no-build typed front end; CSP with Trusted Types).
 
 ## Who it is for
 Families in smog-affected cities, especially households with someone sensitive: asthma or a lung
@@ -109,6 +126,7 @@ that receives focus; the forecast is also available as a data table; visible foc
 | `rules.py`, `planner.py`, `indoor.py`, `commute.py` | Deterministic decisions: verdicts, cleanest windows, dose, CADR, emissions |
 | `advisor.py` | Gemini briefing, grounded on plan facts, with a rules fallback |
 | `static/js/format.js` | Pure helpers (unit-tested with `node:test`) |
+| `static/js/api.d.ts`, `globals.d.ts` | API contract types mirroring `models.py`; checked by `tsc --checkJs` |
 | `static/js/dom.js` | Safe DOM builders (`textContent` only) shared by both pages |
 | `static/js/household.js`, `render.js`, `app.js` | Planner form state, result cards, page wiring |
 | `static/js/live.js`, `motion.js`, `cursor.js` | Landing live widget, motion, custom cursor |
@@ -120,9 +138,9 @@ uv run ruff check . && uv run ruff format --check .
 uv run mypy            # strict
 uv run pytest          # 164 tests, 100% coverage (fails under 90%)
 node --test tests/js/  # front-end helpers
-npm ci && npm run lint # ESLint on the front end and the browser tests
+npm ci && npm run lint && npm run typecheck && npm run format:check
 npx playwright install chromium
-npx playwright test    # 30 browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
+npx playwright test    # 34 browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
 ```
 The browser tests run the real front end and API against fixed air data
 (`tests/e2e/fixture_app.py`), so they need no network or API key. They check the landing page (focus moves with in-page links, reduced motion), the whole flow,
