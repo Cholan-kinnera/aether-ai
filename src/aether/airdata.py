@@ -25,6 +25,8 @@ POLLUTANTS = (
 )
 _CURRENT_FIELDS = ["us_aqi", *POLLUTANTS, *(f"us_aqi_{p}" for p in POLLUTANTS)]
 MAX_CACHE_ENTRIES = 256
+RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+RETRY_BACKOFF_SECONDS = 0.5
 STALE_AFTER_MINUTES = 180
 
 
@@ -77,8 +79,18 @@ class OpenMeteoClient:
         self._air: TTLCache[AirSnapshot] = TTLCache(cache_ttl_seconds)
 
     async def _get_json(self, url: str, params: dict[str, Any]) -> dict[str, Any]:
+        """GET JSON with one retry on network errors and 429/5xx (each try is time-bounded)."""
         try:
-            response = await self._http.get(url, params=params)
+            for attempt in range(2):
+                try:
+                    response = await self._http.get(url, params=params)
+                except httpx.TransportError:
+                    if attempt:
+                        raise
+                else:
+                    if attempt or response.status_code not in RETRY_STATUSES:
+                        break
+                await asyncio.sleep(RETRY_BACKOFF_SECONDS)
             response.raise_for_status()
             data = response.json()
         except (httpx.HTTPError, ValueError) as exc:

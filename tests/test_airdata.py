@@ -142,6 +142,36 @@ async def test_upstream_failures_become_air_data_errors(response):
             await OpenMeteoClient(http).snapshot(location=None, latitude=1, longitude=2)
 
 
+@pytest.fixture(autouse=True)
+def _no_backoff(monkeypatch):
+    monkeypatch.setattr("aether.airdata.RETRY_BACKOFF_SECONDS", 0)
+
+
+@respx.mock
+@pytest.mark.parametrize("blip", [httpx.Response(503), httpx.ConnectError("blip")])
+async def test_one_transient_failure_is_retried(blip):
+    air = respx.get(AIR_URL).mock(side_effect=[blip, httpx.Response(200, json=AIR)])
+    respx.get(WEATHER_URL).mock(return_value=httpx.Response(200, json=WEATHER))
+    async with httpx.AsyncClient() as http:
+        snap = await OpenMeteoClient(http).snapshot(location=None, latitude=1, longitude=2)
+    assert snap.aqi is not None and air.call_count == 2
+
+
+@respx.mock
+async def test_retry_is_bounded_and_client_errors_are_not_retried():
+    air = respx.get(AIR_URL).mock(return_value=httpx.Response(503))
+    respx.get(WEATHER_URL).mock(return_value=httpx.Response(200, json=WEATHER))
+    async with httpx.AsyncClient() as http:
+        client = OpenMeteoClient(http)
+        with pytest.raises(AirDataError):
+            await client.snapshot(location=None, latitude=1, longitude=2)
+        assert air.call_count == 2
+        air.mock(return_value=httpx.Response(400))
+        with pytest.raises(AirDataError):
+            await client.snapshot(location=None, latitude=3, longitude=4)
+    assert air.call_count == 3
+
+
 @respx.mock
 async def test_network_error_mapped():
     respx.get(AIR_URL).mock(side_effect=httpx.ConnectError("boom"))
