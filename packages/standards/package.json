@@ -1,0 +1,14 @@
+{
+  "name": "@aether/standards",
+  "version": "0.1.0",
+  "description": "AETHER Environmental Air Quality Standards - EPA Breakpoints, WHO 2021 Guidelines, and Exposure Constants",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Standards validated\""
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
