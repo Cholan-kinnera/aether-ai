@@ -12,6 +12,20 @@ async function expectNoA11yViolations(page) {
   expect(found).toEqual([]);
 }
 
+// Cumulative Layout Shift since navigation (Core Web Vitals "good" is under 0.1).
+async function layoutShift(page) {
+  return page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        let total = 0;
+        new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) if (!entry.hadRecentInput) total += entry.value;
+        }).observe({ type: "layout-shift", buffered: true });
+        setTimeout(() => resolve(total), 1500);
+      }),
+  );
+}
+
 async function planFor(page, place) {
   await page.getByLabel("City or neighbourhood").fill(place);
   await page.getByRole("button", { name: "Plan my day" }).click();
@@ -22,6 +36,10 @@ test.describe("planner", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/plan");
   });
+  test("loads without layout shift: rows render before the first paint", async ({ page }) => {
+    expect(await layoutShift(page)).toBeLessThan(0.05);
+  });
+
   test("empty form meets WCAG 2.1 AA and fits the viewport", async ({ page }) => {
     await expectNoA11yViolations(page);
     const overflow = await page.evaluate(
@@ -140,6 +158,11 @@ test.describe("planner", () => {
 
 // ---------------------------------------------------------------- landing page (/)
 test.describe("landing", () => {
+  test("loads without layout shift: fonts swap into metric-matched fallbacks", async ({ page }) => {
+    await page.goto("/");
+    expect(await layoutShift(page)).toBeLessThan(0.05);
+  });
+
   test("hero, every section, and WCAG 2.1 AA with live data shown", async ({ page }) => {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));

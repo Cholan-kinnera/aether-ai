@@ -10,6 +10,21 @@
   src: url("/static/vendor/fonts/atkinson-hyperlegible-next.woff2") format("woff2-variations");
   font-weight: 200 800; font-display: swap;
 }
+/* Metric-matched fallbacks: until the web fonts arrive, text is set in local Arial (or a
+   metric-compatible equivalent) scaled to the same advance widths and vertical metrics, so the
+   swap does not reflow lines or shift layout (CLS). Values measured from the font files:
+   Atkinson averages 0.441 em per character, the same as Arial; Bricolage at weight 800 and
+   80% width averages 0.386 em, 81% of Arial Bold. */
+@font-face {
+  font-family: "Atkinson Fallback";
+  src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("Helvetica"), local("Arimo");
+  size-adjust: 100%; ascent-override: 98.4%; descent-override: 31.6%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Bricolage Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("Helvetica Bold"), local("Arimo Bold");
+  size-adjust: 81%; ascent-override: 114.8%; descent-override: 33.3%; line-gap-override: 0%;
+}
 
 :root {
   color-scheme: dark;
@@ -26,8 +41,8 @@
   --bar-good: #2e9d4a; --bar-moderate: #d4b000; --bar-usg: #f08a24; --bar-unhealthy: #e03131;
   --bar-very-unhealthy: #8f45c9; --bar-hazardous: #b42525;
   /* Type: Bricolage for display, Atkinson Hyperlegible Next for reading */
-  --display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
-  --text: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Bricolage Grotesque", "Bricolage Fallback", sans-serif;
+  --text: "Atkinson Hyperlegible Next", "Atkinson Fallback", sans-serif;
   --radius-lg: 1.5rem; --radius: .9rem; --radius-sm: .6rem;
   --measure: 40rem;
 }
