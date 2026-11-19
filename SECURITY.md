@@ -16,7 +16,7 @@ public issue. Expect a reply within 7 days.
 | Briefing replay | One-time, unguessable `briefing_id` (128-bit), expires after 5 minutes | `src/aether/api.py` |
 | Upstream hangs | Bounded timeouts on every outbound call | `src/aether/api.py`, `advisor.py` |
 | Secret leaks | Secrets only from environment variables; logs carry request IDs, never bodies or keys | `src/aether/config.py`, `api.py` |
-| Vulnerable dependencies | Exact locked versions, `pip-audit` + `npm audit` in CI, Dependabot weekly | `.github/` |
+| Vulnerable dependencies | Exact locked versions; `pip-audit` + `npm audit` on every push; Dependabot security alerts | `.github/` |
 | Container escape impact | Image runs as a non-root user | `Dockerfile` |
 | Malicious or malformed upstream data | Provider JSON is narrowed field by field: non-numeric and boolean values become "missing" in forecasts; station readings also reject NaN, infinity and negatives, and a future timestamp makes the reading stale with an unknown age; a bad station payload can never fail a plan | `src/aether/airdata.py`, `stations.py` |
 | Selector or markup injection from saved data | Saved household values are `CSS.escape`d before use in selectors and only ever written with `textContent` | `static/js/household.js`, `dom.js` |

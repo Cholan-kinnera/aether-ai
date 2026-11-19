@@ -148,8 +148,8 @@ number + text + icon for the AQI, data-age labels, the separate CO2e and inhaled
 alerts for errors, keyboard access, reduced motion, no horizontal scroll, and zero axe violations
 before and after a plan is shown.
 
-CI runs all of the above plus `pip-audit` and `npm audit` on every push; Dependabot keeps
-dependencies current. See [SECURITY.md](SECURITY.md) for the threat model.
+CI runs all of the above plus `pip-audit`, `npm audit`, CodeQL and an OWASP ZAP scan on every push;
+Dependabot security alerts are on. See [SECURITY.md](SECURITY.md) for the threat model.
 
 ## Run locally
 ```bash
