@@ -3,7 +3,10 @@
 @font-face {
   font-family: "Bricolage Grotesque";
   src: url("/static/vendor/fonts/bricolage-grotesque.woff2") format("woff2-variations");
-  font-weight: 200 800; font-stretch: 75% 100%; font-display: swap;
+  font-weight: 200 800; font-stretch: 75% 100%;
+  /* Preloaded in <head>; "optional" means a late arrival never swaps in (so never shifts the
+     large headlines) and is used from cache on the next view. */
+  font-display: optional;
 }
 @font-face {
   font-family: "Atkinson Hyperlegible Next";
