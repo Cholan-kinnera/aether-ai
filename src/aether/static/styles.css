@@ -315,6 +315,14 @@ details { margin-top: .75rem; }
 
 /* ---------------------------------------------------------------- planner page */
 .planner { padding-top: clamp(2rem, 5vw, 3.5rem); }
+.planner .glass.has-glow { position: relative; isolation: isolate; overflow: clip; }
+.planner .glass.has-glow::before {
+  content: ""; position: absolute; left: 0; top: 0; z-index: -1; width: 36rem; height: 36rem; margin: -18rem 0 0 -18rem;
+  border-radius: 50%; pointer-events: none; will-change: transform, opacity; opacity: 0; transition: opacity .5s;
+  background: radial-gradient(closest-side, rgba(243, 223, 176, .2), rgba(121, 180, 214, .08) 50%, transparent);
+  transform: translate3d(var(--mx, 50%), var(--my, 0), 0);
+}
+.planner .glass.is-lit::before { opacity: 1; }
 .planner h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); font-stretch: 80%; font-weight: 800; margin-bottom: 1rem; }
 
 /* ---------------------------------------------------------------- custom cursor */

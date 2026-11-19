@@ -41,7 +41,7 @@
   }
 
   gsap.registerPlugin(ScrollTrigger);
-  lenis = new Lenis({ autoRaf: false });
+  lenis = new Lenis({ autoRaf: false, lerp: 0.085 });
   lenis.on("scroll", ScrollTrigger.update);
   tick = (time) => lenis.raf(time * 1000);
   gsap.ticker.add(tick);
@@ -87,9 +87,17 @@
     for (let i = 0; i < count; i++) {
       specks.push({ x: Math.random() * w, y: Math.random() * h, r: 0.6 + Math.random() * 1.9, vx: 0.08 + Math.random() * 0.25, vy: -0.05 + Math.random() * 0.1, a: 0.25 + Math.random() * 0.45 });
     }
+    // A clear sky skips drawing entirely: clearing an empty canvas every frame would still
+    // repaint it, and that forces the glass panels above it to re-blur on every frame.
+    let blank = false;
     drawParticles = () => {
+      if (air.density < 0.02) {
+        if (!blank) ctx.clearRect(0, 0, w, h);
+        blank = true;
+        return;
+      }
+      blank = false;
       ctx.clearRect(0, 0, w, h);
-      if (air.density < 0.02) return;
       ctx.fillStyle = "rgb(232, 214, 186)";
       specks.forEach((s) => {
         s.x += s.vx;
@@ -164,7 +172,31 @@
   if (form && results) {
     // Entrance: the panel glides up. Transform only (no fading), so text is never shown at
     // reduced contrast while it moves.
-    gsap.from(".planner > .glass", { y: 36, duration: 0.9, ease: "power3.out" });
+    const panel = document.querySelector(".planner > .glass");
+    gsap.from(panel, { y: 36, duration: 0.9, ease: "power3.out" });
+
+    // Depth behind the form: as you scroll down it, the city layers rise at different speeds
+    // (nearest fastest) and the sun sinks a little. The paths extend below the frame, so no
+    // gap opens at the bottom.
+    gsap.timeline({ defaults: { ease: "none" }, scrollTrigger: { trigger: panel, start: "top top", end: "bottom bottom", scrub: 1 } })
+      .to(".city-far", { y: -18 }, 0)
+      .to(".city-mid", { y: -42 }, 0)
+      .to(".city-near", { y: -78 }, 0)
+      .to(".trees", { y: -104 }, 0)
+      .to(".sun", { yPercent: 30 }, 0);
+
+    // Light on the glass: a soft warm glow follows the mouse across the panel. It is one
+    // fixed-size layer moved by transform, so following the pointer never repaints the panel.
+    if (window.matchMedia("(pointer: fine) and (hover: hover)").matches) {
+      panel.classList.add("has-glow");
+      panel.addEventListener("pointermove", (event) => {
+        const box = panel.getBoundingClientRect();
+        panel.style.setProperty("--mx", `${event.clientX - box.left}px`);
+        panel.style.setProperty("--my", `${event.clientY - box.top}px`);
+        panel.classList.add("is-lit");
+      }, { passive: true });
+      panel.addEventListener("pointerleave", () => panel.classList.remove("is-lit"));
+    }
 
     // New household or plan rows ease open; removals stay instant so focus moves at once.
     const grow = (node) => gsap.from(node, { height: 0, y: -10, paddingTop: 0, paddingBottom: 0, overflow: "hidden", duration: 0.45, ease: "power2.out", clearProps: "height,transform,paddingTop,paddingBottom,overflow", overwrite: true });
@@ -206,6 +238,7 @@
     // Results: glide down to them, then the cards rise in turn and the forecast bars grow.
     // data-animating marks the short entrance so tests can wait for it to settle.
     document.addEventListener("aether:results", (event) => {
+      if (!lenis) return; // reduced motion was switched on mid-visit: results just appear
       // The results just grew the page; Lenis must re-measure before scrolling past the old end.
       lenis.resize();
       ScrollTrigger.refresh();
