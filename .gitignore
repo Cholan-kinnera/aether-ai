@@ -16,3 +16,5 @@ node_modules/
 # 3D assets need a verified license before they are committed
 *.glb
 .playwright-mcp/
+test-results/
+playwright-report/
