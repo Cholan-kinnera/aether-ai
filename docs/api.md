@@ -275,4 +275,4 @@ If there is no API key, Gemini fails (one retry on 429/5xx) or runs past the 25 
 | `404` | place not found, or briefing id unknown/expired/used | `{"detail": "could not find a place called 'Qzxqzxv'"}` |
 | `422` | validation failed (unknown field, out of range) | FastAPI validation detail |
 | `429` | rate limit exceeded (per client, per minute) | `{"detail": "too many requests, please slow down"}` + `Retry-After` |
-| `502` | air-quality service unavailable | `{"detail": "air quality service unavailable"}` |
+| `502` | air-quality service unavailable | `{"detail": "The air-quality forecast service did not respond. Please try again in a minute."}` |

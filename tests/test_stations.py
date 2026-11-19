@@ -167,7 +167,7 @@ async def test_failures_are_unavailable_and_not_cached(monkeypatch, status):
         client = OpenAQClient(http, "k", 600)
         assert await client.nearest(28.6, 77.2) == (None, "unavailable")
         await client.nearest(28.6, 77.2)
-    retries = 1 if status == 401 else 2  # one bounded retry for 429/5xx only
+    retries = 1 if status == 401 else 3  # bounded retries for 429/5xx only
     assert route.call_count == 2 * retries
 
 

@@ -27,6 +27,8 @@ _CURRENT_FIELDS = ["us_aqi", *POLLUTANTS, *(f"us_aqi_{p}" for p in POLLUTANTS)]
 MAX_CACHE_ENTRIES = 256
 RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
 RETRY_BACKOFF_SECONDS = 0.5
+ATTEMPTS = 3
+UNAVAILABLE = "The air-quality forecast service did not respond. Please try again in a minute."
 STALE_AFTER_MINUTES = 180
 
 
@@ -50,22 +52,26 @@ async def get_json(
     params: dict[str, Any],
     headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """GET a JSON object with one retry on network errors and 429/5xx (each try time-bounded)."""
+    """GET a JSON object, retrying network errors and 429/5xx up to ATTEMPTS tries in all.
+
+    Each try is time-bounded by the client timeout; the backoff grows 0.5 s, then 1 s.
+    """
     try:
-        for attempt in range(2):
+        for attempt in range(1, ATTEMPTS + 1):
+            last = attempt == ATTEMPTS
             try:
                 response = await http.get(url, params=params, headers=headers)
             except httpx.TransportError:
-                if attempt:
+                if last:
                     raise
             else:
-                if attempt or response.status_code not in RETRY_STATUSES:
+                if last or response.status_code not in RETRY_STATUSES:
                     break
-            await asyncio.sleep(RETRY_BACKOFF_SECONDS)
+            await asyncio.sleep(RETRY_BACKOFF_SECONDS * attempt)
         response.raise_for_status()
         data = response.json()
     except (httpx.HTTPError, ValueError) as exc:
-        raise AirDataError("air quality service unavailable") from exc
+        raise AirDataError(UNAVAILABLE) from exc
     if not isinstance(data, dict):
         raise AirDataError("unexpected response from air quality service")
     return data
