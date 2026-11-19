@@ -28,7 +28,7 @@ from .airdata import (
     TTLCache,
 )
 from .config import Settings
-from .models import Briefing, PlanRequest, PlanResponse
+from .models import Briefing, ErrorDetail, PlanRequest, PlanResponse
 from .security import SECURITY_HEADERS, RateLimiter, client_ip
 from .service import build_plan
 from .stations import OpenAQClient, StationLookup
@@ -121,6 +121,21 @@ async def air_error(_: Request, exc: Exception) -> Response:
 
 router = APIRouter()
 
+# Documented in the OpenAPI schema so clients (and the API fuzz test) know every outcome.
+_TOO_MANY: dict[int | str, dict[str, object]] = {
+    429: {"model": ErrorDetail, "description": "Rate limit reached; see Retry-After"}
+}
+PLAN_ERRORS: dict[int | str, dict[str, object]] = {
+    400: {"model": ErrorDetail, "description": "Body is not valid JSON"},
+    404: {"model": ErrorDetail, "description": "Place not found"},
+    502: {"model": ErrorDetail, "description": "Air-quality provider unavailable"},
+    **_TOO_MANY,
+}
+BRIEFING_ERRORS: dict[int | str, dict[str, object]] = {
+    404: {"model": ErrorDetail, "description": "Briefing expired or already used"},
+    **_TOO_MANY,
+}
+
 
 @router.get("/api/health")
 async def health() -> dict[str, str]:
@@ -128,7 +143,7 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.post("/api/plan", dependencies=[Depends(throttle)])
+@router.post("/api/plan", dependencies=[Depends(throttle)], responses=PLAN_ERRORS)
 async def plan(body: PlanRequest, svc: ServicesDep) -> PlanResponse:
     """Deterministic plan, returned at once with a rule-based briefing."""
     snapshot = await svc.air.snapshot(
@@ -143,7 +158,9 @@ async def plan(body: PlanRequest, svc: ServicesDep) -> PlanResponse:
     )
 
 
-@router.post("/api/briefing/{briefing_id}", dependencies=[Depends(throttle)])
+@router.post(
+    "/api/briefing/{briefing_id}", dependencies=[Depends(throttle)], responses=BRIEFING_ERRORS
+)
 async def briefing(briefing_id: str, svc: ServicesDep) -> Briefing:
     """Single-use AI briefing for a plan created in the last few minutes."""
     entry = svc.pending.pop(briefing_id)

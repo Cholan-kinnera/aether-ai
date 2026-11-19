@@ -58,6 +58,8 @@ Label = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, ma
 
 
 class _Strict(BaseModel):
+    # Unknown fields are rejected, and numeric fields are declared strict: JSON booleans and
+    # numeric strings are refused instead of being silently coerced (found by API fuzzing).
     model_config = ConfigDict(extra="forbid")
 
 
@@ -73,9 +75,9 @@ class PlannedActivity(_Strict):
 
     label: Label
     activity: Activity
-    duration_hours: float = Field(ge=0.25, le=8)
-    earliest_hour: int = Field(default=6, ge=0, le=23)
-    latest_hour: int = Field(default=22, ge=1, le=24)
+    duration_hours: float = Field(strict=True, ge=0.25, le=8)
+    earliest_hour: int = Field(strict=True, default=6, ge=0, le=23)
+    latest_hour: int = Field(strict=True, default=22, ge=1, le=24)
 
     @model_validator(mode="after")
     def _check_range(self) -> PlannedActivity:
@@ -87,26 +89,26 @@ class PlannedActivity(_Strict):
 class Home(_Strict):
     """Main room and optional purifier, for indoor advice."""
 
-    floor_area_m2: float = Field(ge=4, le=200)
-    ceiling_height_m: float = Field(default=2.7, ge=2, le=5)
-    purifier_cadr_m3h: float | None = Field(default=None, ge=0, le=3000)
+    floor_area_m2: float = Field(strict=True, ge=4, le=200)
+    ceiling_height_m: float = Field(strict=True, default=2.7, ge=2, le=5)
+    purifier_cadr_m3h: float | None = Field(strict=True, default=None, ge=0, le=3000)
 
 
 class Commute(_Strict):
     """A regular trip, for the emissions and exposure comparison."""
 
-    distance_km: float = Field(gt=0, le=100)
+    distance_km: float = Field(strict=True, gt=0, le=100)
     current_mode: Mode
-    occupants: int = Field(default=1, ge=1, le=7)
-    trips_per_week: int = Field(default=10, ge=1, le=28)
+    occupants: int = Field(strict=True, default=1, ge=1, le=7)
+    trips_per_week: int = Field(strict=True, default=10, ge=1, le=28)
 
 
 class PlanRequest(_Strict):
     """POST /api/plan body: a place (name or coordinates) plus household details."""
 
     location: Place | None = None
-    latitude: float | None = Field(default=None, ge=-90, le=90)
-    longitude: float | None = Field(default=None, ge=-180, le=180)
+    latitude: float | None = Field(strict=True, default=None, ge=-90, le=90)
+    longitude: float | None = Field(strict=True, default=None, ge=-180, le=180)
     members: list[Member] = Field(default_factory=lambda: [Member()], min_length=1, max_length=8)
     activities: list[PlannedActivity] = Field(default_factory=list, max_length=6)
     home: Home | None = None
@@ -301,6 +303,12 @@ class PlanResponse(BaseModel):
     explanation_source: Literal["gemini", "rules"]
     briefing_id: str | None = None
     disclaimer: str
+
+
+class ErrorDetail(BaseModel):
+    """Error body for 404, 429 and 502 responses."""
+
+    detail: str
 
 
 class Briefing(BaseModel):

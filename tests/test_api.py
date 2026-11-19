@@ -151,6 +151,14 @@ def test_coordinates_accepted():
         {"location": "ok city", "note": "n" * 301},
         {"location": "ok city", "unexpected": 1},
         {"location": "a" * 101},
+        # Found by API fuzzing: booleans and numeric strings must not be coerced into numbers.
+        {"location": "ok city", "home": {"floor_area_m2": 20, "purifier_cadr_m3h": False}},
+        {"location": "ok city", "home": {"floor_area_m2": "20"}},
+        {"latitude": True, "longitude": 0},
+        {
+            "location": "ok city",
+            "commute": {"distance_km": 5, "current_mode": "bus", "occupants": True},
+        },
     ],
 )
 def test_invalid_input_rejected(payload):
