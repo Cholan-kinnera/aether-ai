@@ -71,9 +71,19 @@ Browser ──▶ POST /api/plan ──▶ Open-Meteo geocoding + CAMS air quali
 - The container runs as a non-root user; CI has read-only permissions.
 
 ## Design
-A landing page opens on a city skyline under winter smog. As you scroll, the haze lifts and the sky
-clears, which is the app's promise ("there is a cleaner hour") shown as a single scroll-driven
-moment (GSAP ScrollTrigger, Lenis smooth scrolling). Content sits on frosted-glass panels over
+Two pages: a landing page at `/` and the planner at `/plan` (`/plan?city=Delhi` prefills the city).
+The landing opens on a city skyline under winter smog. As you scroll, the haze and its drifting
+PM2.5 specks lift and the sky clears, which is the app's promise ("there is a cleaner hour") as one
+scroll-driven moment (GSAP ScrollTrigger, Lenis smooth scrolling). Below it:
+- **Right now:** the live CAMS forecast and nearest station for five Indian cities, with the next
+  24 hours and the cleanest window. Real API data, labelled and dated like everywhere else.
+- **Why winter mornings are the worst:** a scroll-scrubbed diagram of the inversion lid lifting
+  through the day (CSS `position: sticky`; GSAP pinning is avoided because it writes style
+  attributes, which the CSP blocks).
+- **Households, how it decides, where the numbers come from, and FAQ.**
+
+A custom cursor (a precise dot and a trailing ring that grows over controls) appears only for
+mouse users; touch, pens, form fields and reduced motion keep the native cursor. Content sits on frosted-glass panels over
 the scene. The skyline is hand-built SVG, so there are no stock photos to license and the page
 stays light. Type is Bricolage Grotesque for display and Atkinson Hyperlegible Next, a face
 designed for low-vision readers, for reading. Scripts and fonts are vendored and served from our
@@ -94,7 +104,7 @@ uv run mypy            # strict
 uv run pytest          # 163 tests, 100% coverage (fails under 90%)
 node --test tests/js/  # front-end helpers
 npm ci && npx playwright install chromium
-npx playwright test    # 14 browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
+npx playwright test    # 24 browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
 ```
 The browser tests run the real front end and API against fixed air data
 (`tests/e2e/fixture_app.py`), so they need no network or API key. They check the landing page (focus moves with in-page links, reduced motion), the whole flow,
