@@ -191,7 +191,8 @@ def test_ttl_cache_expiry_and_bound(monkeypatch):
     assert cache.get("b") == 2
     cache.put("c", 4)
     assert cache.get("a") is None and cache.get("c") == 4
-    assert cache.pop("c") == 4 and cache.pop("c") is None
+    first, second = cache.pop("c"), cache.pop("c")  # single use: the second pop finds nothing
+    assert first == 4 and second is None
     cache.put("d", 5)
     now[0] = 11
     assert cache.get("d") is None

@@ -68,12 +68,16 @@ SOURCES = [
     "US EPA Exposure Factors Handbook 2011, Chapter 6, Table 6-2",
 ]
 ASSUMPTIONS = [
-    "Emission factors are UK averages; local vehicle fleets and power grids differ "
-    "(an electric car charged on a coal-heavy grid emits more than shown).",
+    (
+        "Emission factors are UK averages; local vehicle fleets and power grids differ "
+        "(an electric car charged on a coal-heavy grid emits more than shown)."
+    ),
     "Metro uses the DESNZ 'Light rail and tram' factor; suburban rail uses 'National rail'.",
     "Speeds are typical urban door-to-door averages, not route-specific.",
-    "Inhaled PM2.5 assumes in-vehicle air equals today's modelled outdoor PM2.5; real "
-    "cabin filtration and roadside levels vary.",
+    (
+        "Inhaled PM2.5 assumes in-vehicle air equals today's modelled outdoor PM2.5; real "
+        "cabin filtration and roadside levels vary."
+    ),
     "Walking counted as moderate intensity, cycling as high intensity, motorbike as light.",
 ]
 
