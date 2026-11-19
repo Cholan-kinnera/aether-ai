@@ -83,4 +83,6 @@ jobs:
           target: http://localhost:8799/
           fail_action: true
           allow_issue_writing: false
+          # Reviewed false positives and intended behaviour, each with its reason. Anything new fails.
+          rules_file_name: .zap/rules.tsv
           cmd_options: -a
