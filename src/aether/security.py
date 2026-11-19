@@ -19,6 +19,8 @@ SECURITY_HEADERS = {
     ),
     "Cross-Origin-Opener-Policy": "same-origin",
     "Cross-Origin-Resource-Policy": "same-origin",
+    # Every resource is same-origin with CORP, so the page can be fully cross-origin isolated.
+    "Cross-Origin-Embedder-Policy": "require-corp",
     "X-Frame-Options": "DENY",
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
 }

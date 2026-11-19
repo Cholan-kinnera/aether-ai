@@ -68,6 +68,7 @@ def test_security_headers_and_request_id():
             assert headers["x-content-type-options"] == "nosniff"
             assert headers["x-frame-options"] == "DENY"
             assert headers["cross-origin-resource-policy"] == "same-origin"
+            assert headers["cross-origin-embedder-policy"] == "require-corp"
             assert len(headers["x-request-id"]) == 32
         assert client.get("/api/health").headers["cache-control"] == "no-store"
         asset = client.get("/static/js/app.js", headers={"Accept-Encoding": "gzip"})
