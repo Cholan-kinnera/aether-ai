@@ -10,7 +10,7 @@ public issue. Expect a reply within 7 days.
 | Malformed or oversized input | Pydantic models with `extra="forbid"` and bounds on every field | `src/aether/models.py` |
 | Prompt injection via the free-text note | Note passed to Gemini as delimited untrusted data; Gemini can only phrase the briefing, never change verdicts or numbers; output must be JSON, ≤ 700 chars, link-free | `src/aether/advisor.py` |
 | XSS | CSP with no inline scripts or styles; Trusted Types enforced (`require-trusted-types-for 'script'`, no policies allowed), so HTML-string sinks throw; DOM written only with `textContent` | `src/aether/security.py`, `static/js/dom.js` |
-| Clickjacking, sniffing, referrer leaks | `frame-ancestors 'none'` plus `X-Frame-Options: DENY`, COOP and CORP `same-origin`, `nosniff`, `no-referrer`, HSTS, `Permissions-Policy` | `src/aether/security.py` |
+| Clickjacking, sniffing, referrer leaks | `frame-ancestors 'none'` plus `X-Frame-Options: DENY`, COOP and CORP `same-origin`, COEP `require-corp` (cross-origin isolated), `nosniff`, `no-referrer`, HSTS, `Permissions-Policy` | `src/aether/security.py` |
 | Abuse / cost exhaustion | Per-client sliding-window rate limit, checked before body validation so malformed floods are counted; global Gemini calls-per-minute cap; bounded caches | `src/aether/security.py`, `advisor.py`, `airdata.py` |
 | Rate-limit bypass via spoofed `X-Forwarded-For` | Header ignored unless `TRUSTED_PROXY_HOPS` is set, then only that many hops are trusted | `src/aether/security.py` |
 | Briefing replay | One-time, unguessable `briefing_id` (128-bit), expires after 5 minutes | `src/aether/api.py` |
@@ -22,7 +22,7 @@ public issue. Expect a reply within 7 days.
 | Selector or markup injection from saved data | Saved household values are `CSS.escape`d before use in selectors and only ever written with `textContent` | `static/js/household.js`, `dom.js` |
 | Privacy | No accounts, cookies or analytics; the household is kept in the browser's `localStorage` only; "Use my location" coordinates are rounded to 3 decimals (about 100 m) before they leave the device; every request is same-origin (`connect-src 'self'`) | `static/js/app.js`, `household.js` |
 | Insecure code patterns | ruff `S` (bandit) rules and CodeQL (`security-extended`) on Python and JavaScript, on every push and weekly | `pyproject.toml`, `.github/workflows/codeql.yml` |
-| Runtime vulnerabilities | OWASP ZAP baseline scan against the running app in CI: 0 failures. Three reviewed warnings (comment words, intended no-cache, a font path that looks like base64) are recorded with reasons; anything new fails the build | `.github/workflows/ci.yml`, `.zap/rules.tsv` |
+| Runtime vulnerabilities | OWASP ZAP baseline scan against the running app in CI: 0 failures. Four reviewed warnings (comment words, intended no-cache, a font path that looks like base64, and fetch-metadata headers missing from the scanner's own requests) are recorded with reasons; anything new fails the build | `.github/workflows/ci.yml`, `.zap/rules.tsv` |
 | Type confusion in input | Numeric fields are strict: JSON booleans and numeric strings are refused (found by API fuzzing) | `src/aether/models.py` |
 
 ## Verified by tests
