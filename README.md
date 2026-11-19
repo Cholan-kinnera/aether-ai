@@ -72,7 +72,17 @@ uv run ruff check . && uv run ruff format --check .
 uv run mypy            # strict
 uv run pytest          # 122 tests, 100% coverage (fails under 90%)
 node --test tests/js/  # front-end helpers
+npm ci && npx playwright install chromium
+npx playwright test    # browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
 ```
+The browser tests run the real front end and API against fixed air data
+(`tests/e2e/fixture_app.py`), so they need no network or API key. They check the whole flow,
+number + text + icon for the AQI, data-age labels, the separate CO2e and inhaled-dose figures,
+alerts for errors, keyboard access, reduced motion, no horizontal scroll, and zero axe violations
+before and after a plan is shown.
+
+CI runs all of the above plus `pip-audit` and `npm audit` on every push; Dependabot keeps
+dependencies current. See [SECURITY.md](SECURITY.md) for the threat model.
 
 ## Run locally
 ```bash
