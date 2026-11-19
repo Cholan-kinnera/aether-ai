@@ -38,7 +38,9 @@ function wireRow(li, prefix) {
     label.htmlFor = `${id}-${label.dataset.for}`;
   });
   li.querySelectorAll("select.hour").forEach((select) => {
-    for (let h = 0; h <= 24; h++) {
+    // API contract: earliest_hour 0-23, latest_hour 1-24.
+    const latest = select.dataset.id === "latest";
+    for (let h = latest ? 1 : 0; h <= (latest ? 24 : 23); h++) {
       const opt = el("option", `${String(h).padStart(2, "0")}:00`);
       opt.value = String(h);
       select.append(opt);
