@@ -10,12 +10,16 @@ SECURITY_HEADERS = {
     "Content-Security-Policy": (
         "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
         "connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; "
-        "object-src 'none'"
+        "object-src 'none'; require-trusted-types-for 'script'; trusted-types 'none'"
     ),
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
-    "Permissions-Policy": "geolocation=(self), camera=(), microphone=()",
+    "Permissions-Policy": (
+        "geolocation=(self), camera=(), microphone=(), payment=(), usb=(), browsing-topics=()"
+    ),
     "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "X-Frame-Options": "DENY",
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
 }
 

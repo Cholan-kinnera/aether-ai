@@ -62,8 +62,12 @@ def test_security_headers_and_request_id():
     with client_for() as client:
         for path in ("/", "/plan", "/api/health"):
             headers = client.get(path).headers
-            assert "script-src 'self'" in headers["content-security-policy"]
+            csp = headers["content-security-policy"]
+            assert "script-src 'self'" in csp
+            assert "require-trusted-types-for 'script'" in csp  # DOM XSS sinks blocked
             assert headers["x-content-type-options"] == "nosniff"
+            assert headers["x-frame-options"] == "DENY"
+            assert headers["cross-origin-resource-policy"] == "same-origin"
             assert len(headers["x-request-id"]) == 32
         assert client.get("/api/health").headers["cache-control"] == "no-store"
         asset = client.get("/static/js/app.js", headers={"Accept-Encoding": "gzip"})
@@ -177,6 +181,13 @@ def test_rate_limit_returns_429_with_retry_after():
             assert client.post("/api/plan", json={"location": "Testville"}).status_code == 200
         blocked = client.post("/api/plan", json={"location": "Testville"})
     assert blocked.status_code == 429 and int(blocked.headers["retry-after"]) >= 1
+
+
+def test_malformed_requests_count_toward_the_limit():
+    # Throttling runs before validation, so a flood of invalid bodies is not free.
+    with client_for(limit=1) as client:
+        assert client.post("/api/plan", json={"location": ""}).status_code == 422
+        assert client.post("/api/plan", json={"location": ""}).status_code == 429
 
 
 def test_spoofed_forwarded_for_cannot_bypass_limit():
