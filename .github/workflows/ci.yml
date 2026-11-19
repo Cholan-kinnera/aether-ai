@@ -61,3 +61,26 @@ jobs:
       - run: uv export --frozen --no-dev --no-emit-project --format requirements-txt -o requirements.lock
       - run: uvx pip-audit==2.10.1 --strict --require-hashes --disable-pip -r requirements.lock
       - run: npm audit --audit-level=low
+
+  zap:
+    name: OWASP ZAP baseline (dynamic security scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.7"
+      - run: uv sync --locked
+      - name: Start the app (fixed air data, no network or keys)
+        run: |
+          PYTHONPATH=tests nohup uv run uvicorn --factory fixture_app:app --app-dir tests/e2e \
+            --host 0.0.0.0 --port 8799 > uvicorn.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:8799/api/health && exit 0; sleep 1; done
+          cat uvicorn.log; exit 1
+      - uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: http://localhost:8799/
+          fail_action: true
+          allow_issue_writing: false
+          cmd_options: -a
