@@ -1,26 +1,13 @@
 // "Right now" on the landing page: live forecast + nearest station for a few cities.
 // Real data only (POST /api/plan, cached server-side); text via textContent, never innerHTML.
 import { ageText, categoryOf, fmt, hourLabel } from "./format.js";
+import { categoryBadge, el, svg } from "./dom.js";
 
-const SVG = "http://www.w3.org/2000/svg";
 const box = document.getElementById("live");
 const chips = [...document.querySelectorAll(".chip[data-city]")];
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 const cache = new Map();
 let current = 0;
-
-function el(tag, text, className) {
-  const node = document.createElement(tag);
-  if (text !== undefined && text !== null) node.textContent = text;
-  if (className) node.className = className;
-  return node;
-}
-
-function svg(tag, attrs) {
-  const node = document.createElementNS(SVG, tag);
-  Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, String(v)));
-  return node;
-}
 
 function countUp(node, target) {
   if (reduced.matches) {
@@ -77,11 +64,7 @@ function render(d, city) {
   const num = el("p", undefined, `live-aqi cat-${cat.key}`);
   const value = el("span", "0");
   num.append(value, el("span", "US AQI forecast now", "unit"));
-  const badge = el("span", undefined, `badge cat-${cat.key}`);
-  const icon = el("span", `${cat.icon} `);
-  icon.setAttribute("aria-hidden", "true");
-  badge.append(icon, document.createTextNode(cat.name));
-  left.append(el("p", d.location, "live-place"), num, badge);
+  left.append(el("p", d.location, "live-place"), num, categoryBadge(d.aqi));
   const p = d.provenance;
   left.append(el("p", `Model estimate (CAMS), fetched ${ageText(p.data_age_minutes)}.${p.stale ? " Stale: older than 3 hours." : ""}`, "meta"));
   const pm = d.station?.readings.find((r) => r.pollutant === "pm25" && r.value !== null);

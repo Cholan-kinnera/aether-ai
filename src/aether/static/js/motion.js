@@ -16,24 +16,23 @@
   const air = { density: 0 };
 
   // In-page links move focus as well as scroll. Modified clicks are left to the browser.
-  document.querySelectorAll("a[data-scroll]").forEach((link) => {
-    link.addEventListener("click", (event) => {
-      if (event.defaultPrevented || event.button !== 0) return;
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const hash = link.getAttribute("href");
-      const target = document.querySelector(hash);
-      if (!target) return;
-      event.preventDefault();
-      if (window.location.hash !== hash) history.pushState(null, "", hash);
-      if (lenis) {
-        lenis.scrollTo(target, { offset: offset() });
-        target.focus({ preventScroll: true });
-      } else {
-        target.focus();
-        target.scrollIntoView({ block: "start" });
-      }
-    });
-  });
+  function onScrollLink(event) {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const hash = event.currentTarget.getAttribute("href");
+    const target = document.querySelector(hash);
+    if (!target) return;
+    event.preventDefault();
+    if (window.location.hash !== hash) history.pushState(null, "", hash);
+    if (lenis) {
+      lenis.scrollTo(target, { offset: offset() });
+      target.focus({ preventScroll: true });
+    } else {
+      target.focus();
+      target.scrollIntoView({ block: "start" });
+    }
+  }
+  document.querySelectorAll("a[data-scroll]").forEach((link) => link.addEventListener("click", onScrollLink));
 
   if (reduced.matches || !gsap || !ScrollTrigger || !Lenis) {
     root.classList.add("sky-is-clear");
@@ -68,7 +67,7 @@
   // ------------------------------------------------------------ shared: particles
   // Drifting specks of "PM2.5"; their density follows air.density (0 clear, 1 thick smog).
   const canvas = document.querySelector(".particles");
-  if (canvas) {
+  function initParticles() {
     const ctx = canvas.getContext("2d");
     const specks = [];
     let w = 0;
@@ -114,9 +113,10 @@
     };
     gsap.ticker.add(drawParticles);
   }
+  if (canvas) initParticles();
 
   // ------------------------------------------------------------ landing
-  if (document.querySelector(".hero")) {
+  function initLanding() {
     air.density = 1;
     gsap.from(".hero-lede, .hero-actions, .hero-note", { opacity: 0, y: 16, duration: 0.7, ease: "power2.out", stagger: 0.08, delay: 0.45 });
 
@@ -165,11 +165,27 @@
       .to(".inv-sun", { attr: { cy: 70 } }, 0)
       .to(".inv-sky", { opacity: 1 }, 0);
   }
+  if (document.querySelector(".hero")) initLanding();
 
   // ------------------------------------------------------------ planner
   const form = document.getElementById("plan-form");
   const results = document.getElementById("results");
-  if (form && results) {
+  // The sky follows the real AQI category of the plan: clear for Good, smog for Unhealthy+.
+  const HAZE = [
+    { max: 50, level: 0 }, { max: 100, level: 0.25 }, { max: 150, level: 0.5 },
+    { max: 200, level: 0.75 }, { max: Infinity, level: 1 },
+  ];
+  const settleSky = (aqi) => {
+    const level = HAZE.find((b) => aqi <= b.max).level;
+    gsap.to(".sky-clear", { opacity: 1 - level * 0.85, duration: 2.4, ease: "power2.inOut" });
+    gsap.to(".haze-1", { opacity: level * 0.85, duration: 2.4, ease: "power2.inOut" });
+    gsap.to(".haze-2", { opacity: level * 0.8, duration: 2.6, ease: "power2.inOut" });
+    gsap.to(".haze-3", { opacity: 0.15 + level * 0.55, duration: 2.8, ease: "power2.inOut" });
+    gsap.to(".sun", { opacity: 1 - level * 0.6, duration: 2.4, ease: "power2.inOut" });
+    gsap.to(air, { density: level, duration: 2.4, ease: "power2.inOut" });
+  };
+
+  function initPlanner() {
     // Entrance: the panel glides up. Transform only (no fading), so text is never shown at
     // reduced contrast while it moves.
     const panel = document.querySelector(".planner > .glass");
@@ -220,20 +236,6 @@
       });
     });
 
-    // The sky follows the real AQI category of the plan: clear for Good, smog for Unhealthy+.
-    const HAZE = [
-      { max: 50, level: 0 }, { max: 100, level: 0.25 }, { max: 150, level: 0.5 },
-      { max: 200, level: 0.75 }, { max: Infinity, level: 1 },
-    ];
-    const settleSky = (aqi) => {
-      const level = HAZE.find((b) => aqi <= b.max).level;
-      gsap.to(".sky-clear", { opacity: 1 - level * 0.85, duration: 2.4, ease: "power2.inOut" });
-      gsap.to(".haze-1", { opacity: level * 0.85, duration: 2.4, ease: "power2.inOut" });
-      gsap.to(".haze-2", { opacity: level * 0.8, duration: 2.6, ease: "power2.inOut" });
-      gsap.to(".haze-3", { opacity: 0.15 + level * 0.55, duration: 2.8, ease: "power2.inOut" });
-      gsap.to(".sun", { opacity: 1 - level * 0.6, duration: 2.4, ease: "power2.inOut" });
-      gsap.to(air, { density: level, duration: 2.4, ease: "power2.inOut" });
-    };
 
     // Results: glide down to them, then the cards rise in turn and the forecast bars grow.
     // data-animating marks the short entrance so tests can wait for it to settle.
@@ -250,6 +252,7 @@
       if (typeof event.detail?.aqi === "number") settleSky(event.detail.aqi);
     });
   }
+  if (form && results) initPlanner();
 
   // ------------------------------------------------------------ reduced motion mid-visit
   reduced.addEventListener("change", (event) => {
