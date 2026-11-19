@@ -132,7 +132,10 @@ cleanest first):
         "starts_now": true
       },
       "verdict": "avoid",
-      "advice": "Air stays poor all day; do an indoor alternative instead."
+      "advice": "Air stays poor all day; do an indoor alternative instead.",
+      "inhaled_pm25_ug": 237.7,
+      "inhaled_pm25_now_ug": 237.7,
+      "exposure_note": "You would breathe in about 237.7 µg of PM2.5 in this slot."
     }
   ],
   "indoor": {
@@ -222,6 +225,9 @@ Notes on the fields:
   never estimated.
 - `provenance.kind` is always `model_estimate` (CAMS forecast, not a station reading).
   `stale` is `true` when `data_age_minutes` > 180.
+- `schedule[].inhaled_pm25_ug` is the PM2.5 breathed in during the chosen slot, and
+  `inhaled_pm25_now_ug` is the same activity started now: the impact of choosing that time.
+  Both are `null` if any hourly PM2.5 value is missing.
 - `emissions_*_kg_co2e_per_week` (macro impact) and `inhaled_pm25_ug_per_trip` (personal exposure)
   are separate fields. One is never derived from the other.
 - `explanation_source` is `rules` here; the upgraded briefing comes from the endpoint below.
