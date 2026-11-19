@@ -85,3 +85,27 @@ test("reduced motion disables animations", async ({ page }) => {
   );
   expect(duration).toBe("0s");
 });
+
+test("landing: hero, sections, and the call to action moves focus to the planner", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Winter smog thins out/);
+  for (const name of ["One plan for everyone at home", "How it decides", "Forecast and measurement, side by side"]) {
+    await expect(page.getByRole("heading", { level: 2, name })).toBeAttached();
+  }
+  await page.getByRole("link", { name: "Plan my family’s day" }).click();
+  await expect(page.locator("#planner")).toBeFocused({ timeout: 5000 });
+  await expect(page).toHaveURL(/#planner$/);
+  await expect(page.getByLabel("City or neighbourhood")).toBeInViewport();
+  expect(errors).toEqual([]);
+});
+
+test("reduced motion: the sky starts clear and nothing scroll-animates", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveClass(/sky-is-clear/);
+  await expect(page.locator("html")).not.toHaveClass(/lenis/);
+  await page.getByRole("link", { name: "How it decides" }).first().click();
+  await expect(page.locator("#how")).toBeFocused();
+});
