@@ -66,6 +66,7 @@ def test_security_headers_and_request_id():
             assert headers["x-content-type-options"] == "nosniff"
             assert len(headers["x-request-id"]) == 32
         assert client.get("/api/health").headers["cache-control"] == "no-store"
+        assert client.get("/static/js/app.js").headers["cache-control"] == "no-cache"
         echoed = client.get("/api/health", headers={"X-Request-ID": "abc-12345"}).headers[
             "x-request-id"
         ]

@@ -81,7 +81,10 @@ def create_app(
         for name, value in SECURITY_HEADERS.items():
             response.headers[name] = value
         response.headers["X-Request-ID"] = request_id
-        if request.url.path.startswith("/api/"):
+        if not request.url.path.startswith("/api/"):
+            # Revalidate the page and assets (cheap via ETag) so a deploy is never served stale.
+            response.headers["Cache-Control"] = "no-cache"
+        else:
             response.headers["Cache-Control"] = "no-store"
             _log(
                 event="request",
