@@ -8,17 +8,42 @@ more air when exercising hard (EPA Exposure Factors Handbook 2011, Table 6-2).
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from .aqi import POLLUTANT_LABELS, categorize, category_index, dominant_pollutant
-from .models import Activity, AirSnapshot, Group, HourlyPoint, Member, MemberAdvice, TimeWindow
-from .models import Verdict as V
+from .models import (
+    Activity,
+    AirSnapshot,
+    Group,
+    HourlyPoint,
+    Member,
+    MemberAdvice,
+    TimeWindow,
+    Verdict,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 # Verdict per EPA category index (Good, Moderate, USG, Unhealthy, Very Unhealthy, Hazardous).
-SENSITIVE_LADDER = (V.GO, V.CAUTION, V.LIMIT, V.AVOID, V.AVOID, V.AVOID)
-GENERAL_LADDER = (V.GO, V.GO, V.CAUTION, V.LIMIT, V.AVOID, V.AVOID)
-STRICTNESS = (V.GO, V.CAUTION, V.LIMIT, V.AVOID)
+SENSITIVE_LADDER = (
+    Verdict.GO,
+    Verdict.CAUTION,
+    Verdict.LIMIT,
+    Verdict.AVOID,
+    Verdict.AVOID,
+    Verdict.AVOID,
+)
+GENERAL_LADDER = (
+    Verdict.GO,
+    Verdict.GO,
+    Verdict.CAUTION,
+    Verdict.LIMIT,
+    Verdict.AVOID,
+    Verdict.AVOID,
+)
+STRICTNESS = (Verdict.GO, Verdict.CAUTION, Verdict.LIMIT, Verdict.AVOID)
 HARD_EXERCISE = {Activity.RUN, Activity.CYCLE}
 LOOKAHEAD_HOURS = 24
 
@@ -30,17 +55,17 @@ GROUP_LABELS = {
     Group.HEART: "a heart condition",
 }
 
-_BASE_ACTIONS: dict[V, list[str]] = {
-    V.GO: ["Air is fine for normal outdoor plans."],
-    V.CAUTION: [
+_BASE_ACTIONS: dict[Verdict, list[str]] = {
+    Verdict.GO: ["Air is fine for normal outdoor plans."],
+    Verdict.CAUTION: [
         "Outdoor plans are fine; keep hard exercise shorter and take breaks.",
         "Go indoors if you notice coughing or throat irritation.",
     ],
-    V.LIMIT: [
+    Verdict.LIMIT: [
         "Cut outdoor time and intensity, or move exercise indoors.",
         "If you go out, a well-fitted N95/FFP2 mask filters fine particles.",
     ],
-    V.AVOID: [
+    Verdict.AVOID: [
         "Stay indoors with windows closed and a purifier running if you have one.",
         "Skip outdoor exercise; if you must go out, wear a well-fitted N95/FFP2 mask.",
     ],
@@ -66,7 +91,8 @@ URGENT_HELP = (
 )
 
 
-def verdict_for(aqi: float, sensitive: bool, hard_exercise: bool = False) -> V:
+def verdict_for(aqi: float, *, sensitive: bool, hard_exercise: bool = False) -> Verdict:
+    """Verdict for one AQI value from the EPA ladder for the person's sensitivity."""
     ladder = SENSITIVE_LADDER if sensitive else GENERAL_LADDER
     verdict = ladder[category_index(aqi)]
     if hard_exercise:
@@ -74,8 +100,9 @@ def verdict_for(aqi: float, sensitive: bool, hard_exercise: bool = False) -> V:
     return verdict
 
 
-def strictest(verdicts: Sequence[V]) -> V:
-    return max(verdicts, key=STRICTNESS.index, default=V.GO)
+def strictest(verdicts: Sequence[Verdict]) -> Verdict:
+    """Return the strictest verdict (GO when the list is empty)."""
+    return max(verdicts, key=STRICTNESS.index, default=Verdict.GO)
 
 
 def _parse(time: str) -> datetime:
@@ -124,10 +151,11 @@ def cleanest_window(
 
 
 def advise_member(snapshot: AirSnapshot, member: Member, activity: Activity) -> MemberAdvice:
+    """Verdict and reasons for one member at the current AQI."""
     groups = sorted(set(member.groups))
     sensitive = bool(groups)
     hard = activity in HARD_EXERCISE
-    verdict = verdict_for(snapshot.aqi, sensitive, hard)
+    verdict = verdict_for(snapshot.aqi, sensitive=sensitive, hard_exercise=hard)
     dominant = dominant_pollutant(snapshot.sub_indices)
 
     reasons = [f"US AQI is {round(snapshot.aqi)} ({categorize(snapshot.aqi)})."]
@@ -140,11 +168,11 @@ def advise_member(snapshot: AirSnapshot, member: Member, activity: Activity) -> 
         reasons.append(f"{activity.value.capitalize()} means breathing much more air per minute.")
 
     actions = list(_BASE_ACTIONS[verdict])
-    if verdict is not V.GO:
+    if verdict is not Verdict.GO:
         actions += [_GROUP_ACTIONS[g] for g in groups]
         if dominant in _POLLUTANT_ACTIONS:
             actions.append(_POLLUTANT_ACTIONS[dominant])
-    if verdict is V.AVOID or (sensitive and verdict is V.LIMIT):
+    if verdict is Verdict.AVOID or (sensitive and verdict is Verdict.LIMIT):
         actions.append(URGENT_HELP)
     return MemberAdvice(
         name=member.name, groups=groups, verdict=verdict, reasons=reasons, actions=actions

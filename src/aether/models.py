@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 
 
 class Group(StrEnum):
+    """Health groups that are more sensitive to air pollution."""
+
     ASTHMA = "asthma"
     CHILD = "child"
     ELDERLY = "elderly"
@@ -17,6 +19,8 @@ class Group(StrEnum):
 
 
 class Activity(StrEnum):
+    """Outdoor activity, ordered from rest to hard exercise."""
+
     REST = "rest"
     WALK = "walk"
     COMMUTE = "commute"
@@ -25,6 +29,8 @@ class Activity(StrEnum):
 
 
 class Verdict(StrEnum):
+    """Advice level: go, caution, limit or avoid."""
+
     GO = "go"
     CAUTION = "caution"
     LIMIT = "limit"
@@ -32,6 +38,8 @@ class Verdict(StrEnum):
 
 
 class Mode(StrEnum):
+    """Commute mode with a published emission factor."""
+
     CAR_PETROL = "car_petrol"
     CAR_DIESEL = "car_diesel"
     CAR_HYBRID = "car_hybrid"
@@ -54,11 +62,15 @@ class _Strict(BaseModel):
 
 
 class Member(_Strict):
+    """One person in the household."""
+
     name: Label = "You"
     groups: list[Group] = Field(default_factory=list, max_length=5)
 
 
 class PlannedActivity(_Strict):
+    """An outdoor plan to schedule into the cleanest hours."""
+
     label: Label
     activity: Activity
     duration_hours: float = Field(ge=0.25, le=8)
@@ -73,12 +85,16 @@ class PlannedActivity(_Strict):
 
 
 class Home(_Strict):
+    """Main room and optional purifier, for indoor advice."""
+
     floor_area_m2: float = Field(ge=4, le=200)
     ceiling_height_m: float = Field(default=2.7, ge=2, le=5)
     purifier_cadr_m3h: float | None = Field(default=None, ge=0, le=3000)
 
 
 class Commute(_Strict):
+    """A regular trip, for the emissions and exposure comparison."""
+
     distance_km: float = Field(gt=0, le=100)
     current_mode: Mode
     occupants: int = Field(default=1, ge=1, le=7)
@@ -86,6 +102,8 @@ class Commute(_Strict):
 
 
 class PlanRequest(_Strict):
+    """POST /api/plan body: a place (name or coordinates) plus household details."""
+
     location: Place | None = None
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
@@ -109,12 +127,16 @@ class PlanRequest(_Strict):
 
 
 class HourlyPoint(BaseModel):
+    """One forecast hour: US AQI and PM2.5."""
+
     time: str
     us_aqi: float | None
     pm2_5: float | None = None
 
 
 class Weather(BaseModel):
+    """Weather that drives pollution: wind and boundary-layer mixing."""
+
     wind_speed_kmh: float | None
     boundary_layer_m: float | None
     peak_mixing_time: str | None
@@ -122,6 +144,8 @@ class Weather(BaseModel):
 
 
 class Provenance(BaseModel):
+    """Where a value came from, when it was fetched and whether it is stale."""
+
     source: str = "Open-Meteo Air Quality API"
     model: str = "CAMS (Copernicus Atmosphere Monitoring Service) forecast"
     kind: Literal["model_estimate"] = "model_estimate"
@@ -134,6 +158,8 @@ class Provenance(BaseModel):
 
 
 class AirSnapshot(BaseModel):
+    """Modelled air quality for one place, with its provenance."""
+
     location_name: str
     latitude: float
     longitude: float
@@ -150,6 +176,8 @@ class AirSnapshot(BaseModel):
 
 
 class TimeWindow(BaseModel):
+    """A run of consecutive forecast hours and their mean AQI."""
+
     start: str
     end: str
     mean_aqi: float
@@ -157,6 +185,8 @@ class TimeWindow(BaseModel):
 
 
 class MemberAdvice(BaseModel):
+    """Verdict and reasons for one household member."""
+
     name: str
     groups: list[Group]
     verdict: Verdict
@@ -165,6 +195,8 @@ class MemberAdvice(BaseModel):
 
 
 class ScheduledActivity(BaseModel):
+    """A plan moved into its cleanest window, with the inhaled PM2.5 dose."""
+
     label: str
     activity: Activity
     window: TimeWindow | None
@@ -177,6 +209,8 @@ class ScheduledActivity(BaseModel):
 
 
 class IndoorAdvice(BaseModel):
+    """Indoor air steps and purifier adequacy."""
+
     room_volume_m3: float
     recommended_cadr_m3h: float
     purifier_cadr_m3h: float | None
@@ -189,6 +223,8 @@ class IndoorAdvice(BaseModel):
 
 
 class ModeOption(BaseModel):
+    """Weekly emissions and trip exposure for one commute mode."""
+
     mode: Mode
     label: str
     minutes_per_trip: int
@@ -201,6 +237,8 @@ class ModeOption(BaseModel):
 
 
 class CommuteAdvice(BaseModel):
+    """All feasible commute modes compared with the current one."""
+
     options: list[ModeOption]
     summary: str
     assumptions: list[str]
@@ -241,6 +279,8 @@ StationStatus = Literal["ok", "not_configured", "none_nearby", "unavailable"]
 
 
 class PlanResponse(BaseModel):
+    """The full deterministic plan returned by POST /api/plan."""
+
     location: str
     aqi: float
     category: str
@@ -264,5 +304,7 @@ class PlanResponse(BaseModel):
 
 
 class Briefing(BaseModel):
+    """The AI (or rules) briefing returned by POST /api/briefing/{id}."""
+
     explanation: str
     explanation_source: Literal["gemini", "rules"]

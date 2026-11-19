@@ -37,11 +37,13 @@ _TIPS_POLLUTED = [
 
 
 def recommended_cadr_m3h(home: Home) -> float:
+    """Clean air delivery rate for the room: EPA 2/3 rule scaled by ceiling height."""
     cfm = EPA_CFM_PER_FT2 * home.floor_area_m2 * FT2_PER_M2
     return cfm * M3H_PER_CFM * (home.ceiling_height_m / EPA_CEILING_M)
 
 
 def advise_indoor(snapshot: AirSnapshot, home: Home, outdoor_verdict: Verdict) -> IndoorAdvice:
+    """Indoor steps: windows, purifier adequacy and air changes per hour."""
     volume = home.floor_area_m2 * home.ceiling_height_m
     recommended = recommended_cadr_m3h(home)
     cadr = home.purifier_cadr_m3h

@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import math
 from datetime import UTC, datetime
-from typing import Any
-
-import httpx
+from typing import TYPE_CHECKING, Any
 
 from .airdata import STALE_AFTER_MINUTES, AirDataError, TTLCache, get_json
 from .models import StationObservation, StationReading, StationStatus
+
+if TYPE_CHECKING:
+    import httpx
 
 OPENAQ_URL = "https://api.openaq.org/v3"
 SEARCH_RADIUS_M = 25_000
@@ -30,6 +31,7 @@ StationLookup = tuple[StationObservation | None, StationStatus]
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance in kilometres."""
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp, dl = p2 - p1, math.radians(lon2 - lon1)
     a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
@@ -40,7 +42,7 @@ def _age_minutes(utc: object, now: datetime) -> int | None:
     if not isinstance(utc, str):
         return None
     try:
-        when = datetime.fromisoformat(utc.replace("Z", "+00:00"))
+        when = datetime.fromisoformat(utc)
     except ValueError:
         return None
     if when.tzinfo is None:
@@ -91,6 +93,7 @@ def _attribution(loc: dict[str, Any], provider: str) -> str:
 def build_observation(
     loc: dict[str, Any], distance: float, latest: list[dict[str, Any]], now: datetime
 ) -> StationObservation | None:
+    """Build a station observation from OpenAQ rows, keeping only fresh valid readings."""
     provider = str((loc.get("provider") or {}).get("name") or "Unknown provider")
     sensors = {
         s["id"]: s["parameter"]
@@ -143,6 +146,8 @@ _BAD_PAYLOAD = (AirDataError, LookupError, TypeError, ValueError, AttributeError
 
 
 class OpenAQClient:
+    """OpenAQ v3 client for the nearest reporting monitor; never raises."""
+
     def __init__(self, client: httpx.AsyncClient, api_key: str, cache_ttl_seconds: int) -> None:
         self._http = client
         self._headers = {"X-API-Key": api_key}

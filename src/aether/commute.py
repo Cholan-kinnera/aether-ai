@@ -84,6 +84,7 @@ def _per_km(mode: Mode, occupants: int) -> float:
 
 
 def compare_commute(commute: Commute, pm25: float | None) -> CommuteAdvice:
+    """Compare weekly emissions and trip exposure of each feasible mode with the current one."""
     km = commute.distance_km
     current_weekly = _per_km(commute.current_mode, commute.occupants) * km * commute.trips_per_week
     options: list[ModeOption] = []

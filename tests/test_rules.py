@@ -24,7 +24,7 @@ from aether.rules import advise_member, cleanest_window, strictest, verdict_for
     ],
 )
 def test_verdict_matrix(aqi, sensitive, hard, expected):
-    assert verdict_for(aqi, sensitive, hard) is expected
+    assert verdict_for(aqi, sensitive=sensitive, hard_exercise=hard) is expected
 
 
 def test_same_air_differs_by_person():

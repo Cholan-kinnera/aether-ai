@@ -1,6 +1,7 @@
 """AETHER app with fixed air data for browser tests: no network, no API key, deterministic."""
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from conftest import make_snapshot
 from test_stations import latest, location
@@ -8,8 +9,10 @@ from test_stations import latest, location
 from aether.airdata import LocationNotFoundError
 from aether.api import create_app
 from aether.config import Settings
-from aether.models import AirSnapshot
 from aether.stations import StationLookup, build_observation
+
+if TYPE_CHECKING:
+    from aether.models import AirSnapshot
 
 # A smoggy day that clears in the afternoon, so the planner has a clear cleanest window.
 HOURLY: list[float | None] = [170.0, 172, 175, 168, 160, 150, 140, 120, 95, 80, 70, 65]

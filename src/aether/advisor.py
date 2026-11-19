@@ -11,17 +11,19 @@ import asyncio
 import json
 import re
 import time
-from typing import Any, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 import httpx
 
-from .models import PlanResponse
+from .airdata import RETRY_STATUSES
 from .security import RateLimiter
+
+if TYPE_CHECKING:
+    from .models import PlanResponse
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 MAX_BRIEFING_CHARS = 700
 GEMINI_TIMEOUT_SECONDS = 25.0  # overall budget per briefing, retries included
-RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
 RETRY_BACKOFF_SECONDS = 1.0
 MIN_RETRY_SECONDS = 5.0
 Source = Literal["gemini", "rules"]
@@ -49,7 +51,10 @@ _LEAD = {
 
 
 class Advisor(Protocol):
-    async def explain(self, plan: PlanResponse, note: str | None) -> tuple[str, Source]: ...
+    """Writes the plain-language briefing for a finished plan."""
+
+    async def explain(self, plan: PlanResponse, note: str | None) -> tuple[str, Source]:
+        """Return (briefing text, source); must never raise."""
 
 
 def plan_facts(plan: PlanResponse) -> dict[str, Any]:
@@ -94,6 +99,7 @@ def plan_facts(plan: PlanResponse) -> dict[str, Any]:
 
 
 def rules_briefing(plan: PlanResponse) -> str:
+    """Deterministic briefing built only from the plan; the fallback when Gemini fails."""
     parts = [
         _LEAD[plan.household_verdict.value],
         f"US AQI is {round(plan.aqi)} ({plan.category}).",
@@ -123,6 +129,8 @@ def clean_briefing(text: object) -> str | None:
 
 
 class GeminiAdvisor:
+    """Gemini advisor: grounded on plan facts, rate-limited and time-bounded."""
+
     def __init__(
         self,
         api_key: str,
@@ -136,6 +144,7 @@ class GeminiAdvisor:
         self._budget = RateLimiter(calls_per_minute)
 
     async def explain(self, plan: PlanResponse, note: str | None) -> tuple[str, Source]:
+        """Ask Gemini to explain the plan; fall back to the rules briefing on any failure."""
         fallback: tuple[str, Source] = (rules_briefing(plan), "rules")
         if not self._key or self._budget.check("global"):
             return fallback

@@ -7,20 +7,24 @@ import re
 from .models import Activity, Group
 
 _GROUP_PATTERNS: dict[Group, re.Pattern[str]] = {
-    Group.ASTHMA: re.compile(r"\b(asthma\w*|inhaler|copd|bronch\w+)\b", re.I),
+    Group.ASTHMA: re.compile(r"\b(asthma\w*|inhaler|copd|bronch\w+)\b", re.IGNORECASE),
     Group.CHILD: re.compile(
-        r"\b(child|children|kid|kids|toddler|baby|infant|son|daughter)\b", re.I
+        r"\b(child|children|kid|kids|toddler|baby|infant|son|daughter)\b", re.IGNORECASE
     ),
-    Group.ELDERLY: re.compile(r"\b(elderly|senior|grandmother|grandfather|grandparents?)\b", re.I),
-    Group.PREGNANT: re.compile(r"\b(pregnan\w+|expecting)\b", re.I),
-    Group.HEART: re.compile(r"\b(heart (condition|disease|patient)|cardiac|hypertension)\b", re.I),
+    Group.ELDERLY: re.compile(
+        r"\b(elderly|senior|grandmother|grandfather|grandparents?)\b", re.IGNORECASE
+    ),
+    Group.PREGNANT: re.compile(r"\b(pregnan\w+|expecting)\b", re.IGNORECASE),
+    Group.HEART: re.compile(
+        r"\b(heart (condition|disease|patient)|cardiac|hypertension)\b", re.IGNORECASE
+    ),
 }
 
 _ACTIVITY_PATTERNS: tuple[tuple[Activity, re.Pattern[str]], ...] = (
-    (Activity.RUN, re.compile(r"\b(run|running|jog|jogging|marathon)\b", re.I)),
-    (Activity.CYCLE, re.compile(r"\b(cycle|cycling|bike|biking|bicycle)\b", re.I)),
-    (Activity.COMMUTE, re.compile(r"\b(commute|commuting|office|school run)\b", re.I)),
-    (Activity.WALK, re.compile(r"\b(walk|walking|stroll|hike|hiking)\b", re.I)),
+    (Activity.RUN, re.compile(r"\b(run|running|jog|jogging|marathon)\b", re.IGNORECASE)),
+    (Activity.CYCLE, re.compile(r"\b(cycle|cycling|bike|biking|bicycle)\b", re.IGNORECASE)),
+    (Activity.COMMUTE, re.compile(r"\b(commute|commuting|office|school run)\b", re.IGNORECASE)),
+    (Activity.WALK, re.compile(r"\b(walk|walking|stroll|hike|hiking)\b", re.IGNORECASE)),
 )
 
 _NEGATIONS = {"no", "not", "never", "without", "don't", "dont", "doesn't", "doesnt"}

@@ -41,10 +41,23 @@ line-length = 100
 target-version = "py314"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF", "C4", "PT", "RET"]
+select = [
+    "E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF", "C4", "PT", "RET",
+    "C90", "PL", "N", "D", "FBT", "FURB", "PTH", "PERF", "TC", "ARG", "BLE", "DTZ", "T20", "ERA",
+]
+ignore = ["D105", "D107"]  # magic methods and __init__ are covered by the class docstring
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "E501", "PT018"]
+"tests/*" = ["S101", "E501", "PT018", "D", "PLR2004", "ARG", "FBT", "PLR0913", "PLC0415"]
 
 [tool.mypy]
 strict = true

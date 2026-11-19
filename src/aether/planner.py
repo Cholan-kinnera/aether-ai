@@ -49,7 +49,8 @@ def inhaled_pm25(hourly: list[HourlyPoint], start: int, item: PlannedActivity) -
     return round(mean * INHALATION[item.activity] * item.duration_hours * 60, 1)
 
 
-def exposure_note(chosen: float | None, now: float | None, starts_now: bool) -> str | None:
+def exposure_note(chosen: float | None, now: float | None, *, starts_now: bool) -> str | None:
+    """Explain the dose for the chosen slot and how much starting now would add."""
     if chosen is None:
         return None
     if starts_now or now is None or now <= chosen:
@@ -86,7 +87,9 @@ def plan_day(
             continue
         start = datetime.fromisoformat(window.start)
         taken.append((start, start + timedelta(hours=hours)))
-        verdict = verdict_for(window.mean_aqi, sensitive, item.activity in HARD_EXERCISE)
+        verdict = verdict_for(
+            window.mean_aqi, sensitive=sensitive, hard_exercise=item.activity in HARD_EXERCISE
+        )
         index = next(n for n, p in enumerate(snapshot.hourly) if p.time == window.start)
         chosen = inhaled_pm25(snapshot.hourly, index, item)
         now = inhaled_pm25(snapshot.hourly, 0, item)
@@ -98,6 +101,6 @@ def plan_day(
             advice=_ADVICE[verdict],
             inhaled_pm25_ug=chosen,
             inhaled_pm25_now_ug=now,
-            exposure_note=exposure_note(chosen, now, window.starts_now),
+            exposure_note=exposure_note(chosen, now, starts_now=window.starts_now),
         )
     return [placed[i] for i in range(len(activities))]

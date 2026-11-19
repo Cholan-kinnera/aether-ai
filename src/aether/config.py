@@ -17,6 +17,8 @@ def _int(name: str, default: int, minimum: int = 1) -> int:
 
 @dataclass(frozen=True)
 class Settings:
+    """Runtime settings, read from environment variables."""
+
     gemini_api_key: str = ""
     openaq_api_key: str = ""
     gemini_model: str = DEFAULT_MODEL
@@ -28,6 +30,7 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> Settings:
+        """Build settings from the environment, falling back to safe defaults."""
         return cls(
             gemini_api_key=os.environ.get("GEMINI_API_KEY", "").strip(),
             openaq_api_key=os.environ.get("OPENAQ_API_KEY", "").strip(),

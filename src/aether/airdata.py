@@ -41,9 +41,12 @@ class LocationNotFoundError(AirDataError):
 
 
 class AirDataProvider(Protocol):
+    """Source of air-quality snapshots (Open-Meteo in production, fakes in tests)."""
+
     async def snapshot(
         self, *, location: str | None, latitude: float | None, longitude: float | None
-    ) -> AirSnapshot: ...
+    ) -> AirSnapshot:
+        """Return a snapshot for a place name or coordinates."""
 
 
 async def get_json(
@@ -86,6 +89,7 @@ class TTLCache[T]:
         self._items: dict[str, tuple[float, T]] = {}
 
     def get(self, key: str) -> T | None:
+        """Return the live value for key, evicting it if expired."""
         entry = self._items.get(key)
         if entry is None:
             return None
@@ -95,17 +99,21 @@ class TTLCache[T]:
         return entry[1]
 
     def pop(self, key: str) -> T | None:
+        """Return and remove the live value for key (single use)."""
         value = self.get(key)
         self._items.pop(key, None)
         return value
 
     def put(self, key: str, value: T) -> None:
+        """Store value under key, evicting the oldest entry when full."""
         if key not in self._items and len(self._items) >= self._max:
             self._items.pop(next(iter(self._items)))
         self._items[key] = (time.monotonic(), value)
 
 
 class OpenMeteoClient:
+    """Open-Meteo geocoding, CAMS air-quality and weather client with a TTL cache."""
+
     def __init__(self, client: httpx.AsyncClient, cache_ttl_seconds: int = 600) -> None:
         self._http = client
         self._places: TTLCache[tuple[str, float, float]] = TTLCache(cache_ttl_seconds * 6)
@@ -154,6 +162,7 @@ class OpenMeteoClient:
     async def snapshot(
         self, *, location: str | None, latitude: float | None, longitude: float | None
     ) -> AirSnapshot:
+        """Geocode if needed, then fetch air quality and weather for the place."""
         if latitude is None or longitude is None:
             if not location:
                 raise LocationNotFoundError("no location provided")
@@ -178,7 +187,7 @@ class OpenMeteoClient:
                 ),
                 self._weather(latitude, longitude),
             )
-            snap = parse_air_response(air, label, latitude, longitude, weather)
+            snap = parse_air_response(air, label, latitude, longitude, weather=weather)
             self._air.put(key, snap)
         return snap.model_copy(update={"location_name": label})
 
@@ -203,6 +212,7 @@ def _provenance(observed: str, utc_offset_seconds: int, now: datetime) -> Proven
 
 
 def parse_weather(data: dict[str, Any] | None, hour_prefix: str) -> Weather | None:
+    """Extract wind, boundary-layer height and today's peak mixing hour; None if absent."""
     hourly = (data or {}).get("hourly")
     if not isinstance(hourly, dict):
         return None
@@ -228,6 +238,7 @@ def parse_air_response(
     label: str,
     latitude: float,
     longitude: float,
+    *,
     weather: dict[str, Any] | None = None,
     now: datetime | None = None,
 ) -> AirSnapshot:

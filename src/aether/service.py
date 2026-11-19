@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from .aqi import categorize, dominant_pollutant
 from .commute import compare_commute
 from .indoor import advise_indoor
@@ -9,7 +11,9 @@ from .models import Activity, AirSnapshot, Member, PlannedActivity, PlanRequest,
 from .planner import plan_day
 from .profiles import extract_from_note
 from .rules import advise_member, cleanest_window, strictest
-from .stations import StationLookup
+
+if TYPE_CHECKING:
+    from .stations import StationLookup
 
 DISCLAIMER = (
     "General guidance from modelled public air-quality data, not medical advice. Follow your "
@@ -39,6 +43,7 @@ def resolve_profile(body: PlanRequest) -> tuple[list[Member], list[PlannedActivi
 def build_plan(
     snapshot: AirSnapshot, body: PlanRequest, station: StationLookup = (None, "not_configured")
 ) -> PlanResponse:
+    """Assemble the full plan from a snapshot, the request and the nearest station."""
     members, activities, main_activity = resolve_profile(body)
     advice = [advise_member(snapshot, m, main_activity) for m in members]
     household = strictest([a.verdict for a in advice])
