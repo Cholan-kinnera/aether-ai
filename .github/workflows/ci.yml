@@ -7,6 +7,7 @@ permissions:
   contents: read
 jobs:
   test:
+    name: Lint, types, unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -23,3 +24,37 @@ jobs:
       - run: uv run mypy
       - run: uv run pytest
       - run: node --test tests/js/
+
+  e2e:
+    name: Browser tests (axe WCAG 2.1 AA, 1440px + 375px)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.7"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - run: uv sync --locked
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.7"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - run: uv export --frozen --no-dev --no-emit-project --format requirements-txt -o requirements.lock
+      - run: uvx pip-audit==2.10.1 --strict --require-hashes --disable-pip -r requirements.lock
+      - run: npm audit --audit-level=low
