@@ -44,6 +44,12 @@ test("household plan shows verdicts, provenance, schedule, indoor and commute", 
   await expect(results.getByText("✖ Stay indoors").first()).toBeVisible();
   // Data honesty: model estimate label and data age.
   await expect(results.getByText(/Model estimate .* fetched 5 min ago/)).toBeVisible();
+  // Measured station data sits beside the forecast, labelled and attributed.
+  const station = results.getByRole("region", { name: "Nearest monitoring station" });
+  await expect(station.getByText(/Fixture Road \(CPCB reference monitor\), 2\.4 km away/)).toBeVisible();
+  await expect(station.getByText("98 µg/m³")).toBeVisible();
+  await expect(station.getByText("0.05 ppm")).toBeVisible();
+  await expect(station.getByText(/via OpenAQ/)).toBeVisible();
   // Each part of the plan.
   for (const name of ["Your briefing", "Who should do what", "Your low-exposure day", "Indoor air plan"]) {
     await expect(results.getByRole("heading", { name })).toBeVisible();

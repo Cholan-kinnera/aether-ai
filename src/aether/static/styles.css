@@ -114,3 +114,4 @@ footer { color: var(--muted); font-size: .88rem; padding-top: 1rem; padding-bott
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.pollutants dd.help { font-weight: 400; }

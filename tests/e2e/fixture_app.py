@@ -1,11 +1,15 @@
 """AETHER app with fixed air data for browser tests: no network, no API key, deterministic."""
 
+from datetime import UTC, datetime
+
 from conftest import make_snapshot
+from test_stations import latest, location
 
 from aether.airdata import LocationNotFoundError
 from aether.api import create_app
 from aether.config import Settings
 from aether.models import AirSnapshot
+from aether.stations import StationLookup, build_observation
 
 # A smoggy day that clears in the afternoon, so the planner has a clear cleanest window.
 HOURLY: list[float | None] = [170.0, 172, 175, 168, 160, 150, 140, 120, 95, 80, 70, 65]
@@ -24,5 +28,13 @@ class FixtureAir:
         return snap.model_copy(update={"hourly": hourly})
 
 
+class FixtureStations:
+    async def nearest(self, latitude: float, longitude: float) -> StationLookup:
+        loc = location(42, latitude, longitude, name="Fixture Road", provider="CPCB")
+        return build_observation(loc, 2.4, latest(42)["results"], datetime.now(UTC)), "ok"
+
+
 def app():  # type: ignore[no-untyped-def]
-    return create_app(Settings(rate_limit_per_minute=1000), FixtureAir())
+    return create_app(
+        Settings(rate_limit_per_minute=1000), FixtureAir(), stations=FixtureStations()
+    )

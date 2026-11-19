@@ -196,6 +196,34 @@ function renderOverview(d) {
   return section;
 }
 
+const STATION_STATUS = {
+  none_nearby: "No monitoring station within 25 km has reported in the last 24 hours, so only the model estimate above is available.",
+  unavailable: "Station measurements are unavailable right now; the model estimate above is unaffected.",
+};
+
+function renderStation(d) {
+  if (d.station_status === "not_configured") return null;
+  const section = card("Nearest monitoring station", "station");
+  const s = d.station;
+  if (!s) {
+    section.append(el("p", STATION_STATUS[d.station_status], "help"));
+    return section;
+  }
+  const kind = s.is_reference_monitor ? "reference monitor" : "sensor";
+  section.append(el("p", `Measured at ${s.station_name} (${s.provider} ${kind}), ${fmt(s.distance_km, 1)} km away. Station measurement, shown beside the model estimate and never mixed into it; units as reported by the provider.`, "meta"));
+  const dl = el("dl", undefined, "pollutants");
+  s.readings.forEach((r) => {
+    const div = el("div");
+    const value = r.value === null ? "no valid reading" : `${fmt(r.value, r.value < 1 ? 3 : 1)} ${r.unit}`;
+    const age = r.data_age_minutes === null ? "time unknown" : ageText(r.data_age_minutes);
+    div.append(el("dt", r.label), el("dd", value), el("dd", age, "help"));
+    if (r.stale) div.append(el("dd", "Stale: older than 3 hours.", "stale"));
+    dl.append(div);
+  });
+  section.append(dl, el("p", s.attribution, "help"));
+  return section;
+}
+
 const SOURCE_TEXT = {
   gemini: "Written by Google Gemini from the computed plan; it cannot change verdicts or numbers.",
   rules: "Rule-based briefing.",
@@ -370,7 +398,7 @@ function renderCommute(c) {
 }
 
 function render(d) {
-  const nodes = [renderOverview(d), renderBriefing(d), renderMembers(d), renderSchedule(d)];
+  const nodes = [renderOverview(d), renderStation(d), renderBriefing(d), renderMembers(d), renderSchedule(d)].filter(Boolean);
   if (d.indoor) nodes.push(renderIndoor(d.indoor));
   if (d.commute) nodes.push(renderCommute(d.commute));
   nodes.push(el("p", d.disclaimer, "help disclaimer"));
