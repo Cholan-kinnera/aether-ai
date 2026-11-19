@@ -44,7 +44,8 @@ Browser ──▶ POST /api/plan ──▶ Open-Meteo geocoding + CAMS air quali
   Gemini only phrases the briefing. Its output must be JSON of at most 700 characters with no links,
   or it is discarded. The user's note is passed as delimited, untrusted data.
 - **Fast first paint.** The plan returns without waiting for Gemini, which can take 5–25 s.
-  Gemini calls have a 25 s timeout and a global per-minute cap.
+  Gemini calls have a 25 s overall budget (one retry on 429/5xx inside it) and a global
+  per-minute cap.
 - **No build step, no database.** FastAPI serves one static page. Household details are kept only
   in the browser's localStorage and can be removed with "Forget saved household".
 
@@ -70,7 +71,7 @@ that receives focus; the forecast is also available as a data table; visible foc
 uv sync
 uv run ruff check . && uv run ruff format --check .
 uv run mypy            # strict
-uv run pytest          # 122 tests, 100% coverage (fails under 90%)
+uv run pytest          # 127 tests, 100% coverage (fails under 90%)
 node --test tests/js/  # front-end helpers
 npm ci && npx playwright install chromium
 npx playwright test    # browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans

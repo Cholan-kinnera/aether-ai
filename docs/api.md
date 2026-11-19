@@ -237,7 +237,7 @@ No body. Returns the AI briefing for the plan that issued `briefing_id`. Each id
 }
 ```
 
-If there is no API key, Gemini fails or times out (25 s), or its output fails validation (JSON,
+If there is no API key, Gemini fails (one retry on 429/5xx) or runs past the 25 s budget, or its output fails validation (JSON,
 ≤ 700 chars, no links), the response is the rule-based text with `"explanation_source": "rules"`.
 
 ## Errors
