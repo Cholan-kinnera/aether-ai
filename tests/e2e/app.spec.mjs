@@ -91,6 +91,7 @@ test.describe("planner", () => {
   test("unknown place is announced as an alert", async ({ page }) => {
     await planFor(page, "Nowhere");
     await expect(page.getByRole("alert")).toHaveText("could not find a place called 'Nowhere'");
+    await expectNoA11yViolations(page);
   });
 
   test("keyboard: skip link is first and moves focus to main content", async ({ page }) => {
