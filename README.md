@@ -19,7 +19,7 @@
 | Code quality | [CODE_QUALITY.md](CODE_QUALITY.md) | Typed on both sides (mypy strict, tsc strict `--checkJs`), complexity ≤ 10, docstrings enforced |
 | Security | [SECURITY.md](SECURITY.md) | Strict CSP with Trusted Types, prompt-injection-proof decisions, CodeQL |
 | Efficiency | [EFFICIENCY.md](EFFICIENCY.md) | Lighthouse **100** for performance, accessibility, best practices and SEO on both pages, mobile and desktop; CLS 0 |
-| Testing | [TESTING.md](TESTING.md) | 164 backend tests at **100% coverage**, 34 browser tests, 6 helper tests |
+| Testing | [TESTING.md](TESTING.md) | 181 backend tests at **100% coverage** (incl. property-based and API fuzzing), 34 browser tests, OWASP ZAP scan |
 | Accessibility | [ACCESSIBILITY.md](ACCESSIBILITY.md) | WCAG 2.1 AA: zero axe violations at 1440 px and 375 px |
 
 Design decisions: [docs/adr](docs/adr) (rules decide and AI explains; forecast and measurement
@@ -136,7 +136,7 @@ that receives focus; the forecast is also available as a data table; visible foc
 uv sync
 uv run ruff check . && uv run ruff format --check .
 uv run mypy            # strict
-uv run pytest          # 164 tests, 100% coverage (fails under 90%)
+uv run pytest          # 181 tests incl. property-based and fuzz tests, 100% coverage
 node --test tests/js/  # front-end helpers
 npm ci && npm run lint && npm run typecheck && npm run format:check
 npx playwright install chromium

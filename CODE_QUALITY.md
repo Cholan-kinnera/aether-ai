@@ -43,7 +43,8 @@ Browser (no build step)                       FastAPI (src/aether)
 | ESLint 10 | Recommended rules plus `eqeqeq`, `no-shadow`, `no-param-reassign`, `no-eval`, complexity ≤ 12, max depth 4, functions ≤ 60 lines |
 | TypeScript 7 | `--checkJs --strict --noUnusedLocals --noUnusedParameters` over the whole front end |
 | Prettier | JavaScript, TypeScript declarations, JSON and YAML |
-| pytest | Coverage gate at 90% (actual: 100%) |
+| pytest | Coverage gate at 90% (actual: 100%), including Hypothesis property tests and Schemathesis API fuzzing |
+| OWASP ZAP | Baseline scan of the running app; fails on any unreviewed alert |
 | CodeQL | `security-extended` and `security-and-quality` queries for Python and JavaScript |
 
 The static gates (ruff, mypy, ESLint, tsc, Prettier) also run locally through `.pre-commit-config.yaml`. `.editorconfig` and

@@ -22,6 +22,8 @@ public issue. Expect a reply within 7 days.
 | Selector or markup injection from saved data | Saved household values are `CSS.escape`d before use in selectors and only ever written with `textContent` | `static/js/household.js`, `dom.js` |
 | Privacy | No accounts, cookies or analytics; the household is kept in the browser's `localStorage` only; "Use my location" coordinates are rounded to 3 decimals (about 100 m) before they leave the device; every request is same-origin (`connect-src 'self'`) | `static/js/app.js`, `household.js` |
 | Insecure code patterns | ruff `S` (bandit) rules and CodeQL (`security-extended`) on Python and JavaScript, on every push and weekly | `pyproject.toml`, `.github/workflows/codeql.yml` |
+| Runtime vulnerabilities | OWASP ZAP baseline scan against the running app in CI: 0 failures. Three reviewed warnings (comment words, intended no-cache, a font path that looks like base64) are recorded with reasons; anything new fails the build | `.github/workflows/ci.yml`, `.zap/rules.tsv` |
+| Type confusion in input | Numeric fields are strict: JSON booleans and numeric strings are refused (found by API fuzzing) | `src/aether/models.py` |
 
 ## Verified by tests
 | Control | Test |
@@ -31,7 +33,9 @@ public issue. Expect a reply within 7 days.
 | Note sent to Gemini only as delimited untrusted data | `tests/test_advisor.py::test_gemini_success_sends_untrusted_note_delimited` |
 | Rate limit, malformed floods, spoofed `X-Forwarded-For` | `tests/test_api.py::test_rate_limit_returns_429_with_retry_after`, `::test_malformed_requests_count_toward_the_limit`, `::test_spoofed_forwarded_for_cannot_bypass_limit` |
 | Single-use briefings | `tests/test_api.py::test_briefing_is_single_use_and_passes_note` |
-| Invalid input rejected with 422 | `tests/test_api.py::test_invalid_input_rejected` |
+| Invalid input rejected with 422, including booleans and numeric strings | `tests/test_api.py::test_invalid_input_rejected` |
+| No endpoint crashes or drifts from its contract under generated hostile input | `tests/test_api_fuzz.py` (Schemathesis) |
+| Untrusted values and bounded resources hold for any input | `tests/test_properties.py` (Hypothesis) |
 | Hostile upstream values stay missing | `tests/test_stations.py::test_non_finite_or_non_numeric_values_stay_missing`, `::test_malformed_payloads_never_fail_the_plan` |
 | Limiter memory stays bounded | `tests/test_security.py::test_rate_limiter_hard_bound_when_all_active` |
 
