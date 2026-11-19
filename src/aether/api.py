@@ -159,6 +159,10 @@ def create_app(
     async def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
 
+    @app.get("/plan", include_in_schema=False)
+    async def planner() -> FileResponse:
+        return FileResponse(STATIC_DIR / "plan.html")
+
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     return app
 

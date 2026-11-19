@@ -117,6 +117,9 @@ function restore() {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch { saved = null; }
   if (saved?.location && saved.location !== "My current location") $("location").value = saved.location;
+  // A city chosen on the landing page (/plan?city=Delhi) wins over the saved one.
+  const city = new URLSearchParams(window.location.search).get("city");
+  if (city && city.trim()) $("location").value = city.trim().slice(0, 100);
   const members = Array.isArray(saved?.members) && saved.members.length ? saved.members : [{ name: "You" }];
   members.slice(0, MAX_MEMBERS).forEach((m) => addMember(m));
   const activities = Array.isArray(saved?.activities) && saved.activities.length

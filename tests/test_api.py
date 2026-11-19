@@ -60,7 +60,7 @@ def test_health_index_and_static_modules():
 
 def test_security_headers_and_request_id():
     with client_for() as client:
-        for path in ("/", "/api/health"):
+        for path in ("/", "/plan", "/api/health"):
             headers = client.get(path).headers
             assert "script-src 'self'" in headers["content-security-policy"]
             assert headers["x-content-type-options"] == "nosniff"
