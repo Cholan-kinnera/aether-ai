@@ -330,6 +330,21 @@ html.has-cursor select { cursor: default !important; }
 .cursor-down .cursor-ring::before { transform: scale(.8); }
 .cursor-text .cursor-dot, .cursor-text .cursor-ring { opacity: 0; }
 
+/* ---------------------------------------------------------------- planner micro-interactions */
+input[type=text], input[type=number], select, textarea { transition: border-color .2s, box-shadow .25s, background-color .2s; }
+input[type=text]:focus-visible, input[type=number]:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--focus); outline-offset: 1px; box-shadow: 0 0 0 6px rgba(255, 210, 122, .18); background-color: rgba(8, 18, 30, .75);
+}
+input[type=text]:hover, input[type=number]:hover, select:hover, textarea:hover { border-color: rgba(238, 243, 246, .45); }
+.checks input { transition: transform .15s; }
+.checks input:active { transform: scale(.9); }
+button.is-loading { gap: .6rem; }
+button.is-loading::after {
+  content: ""; width: 1rem; height: 1rem; border-radius: 50%; border: 2.5px solid currentColor; border-right-color: transparent;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* Small screens: nested glass + cards would eat the width, so the padding shrinks. */
 @media (max-width: 30rem) {
   .band { padding-left: .6rem; padding-right: .6rem; }

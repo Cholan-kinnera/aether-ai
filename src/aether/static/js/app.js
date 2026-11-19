@@ -406,7 +406,10 @@ function render(d) {
   if (d.commute) nodes.push(renderCommute(d.commute));
   nodes.push(el("p", d.disclaimer, "help disclaimer"));
   results.replaceChildren(...nodes);
-  results.focus();
+  results.focus({ preventScroll: true });
+  // motion.js glides to the results when smooth scrolling is on; otherwise jump there.
+  if (!document.documentElement.classList.contains("lenis")) results.scrollIntoView({ block: "start" });
+  document.dispatchEvent(new CustomEvent("aether:results", { detail: { aqi: d.aqi } }));
   if (d.briefing_id) upgradeBriefing(d.briefing_id);
 }
 
@@ -472,6 +475,7 @@ form.addEventListener("submit", async (event) => {
   save();
   const btn = $("submit-btn");
   btn.disabled = true;
+  btn.classList.add("is-loading");
   results.setAttribute("aria-busy", "true");
   results.replaceChildren(el("p", "Building your plan…", "help"));
   try {
@@ -487,6 +491,7 @@ form.addEventListener("submit", async (event) => {
     showError("Network problem. Please check your connection and try again.");
   } finally {
     btn.disabled = false;
+    btn.classList.remove("is-loading");
     results.setAttribute("aria-busy", "false");
   }
 });
