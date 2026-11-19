@@ -9,6 +9,7 @@ from .models import Activity, AirSnapshot, Member, PlannedActivity, PlanRequest,
 from .planner import plan_day
 from .profiles import extract_from_note
 from .rules import advise_member, cleanest_window, strictest
+from .stations import StationLookup
 
 DISCLAIMER = (
     "General guidance from modelled public air-quality data, not medical advice. Follow your "
@@ -35,7 +36,9 @@ def resolve_profile(body: PlanRequest) -> tuple[list[Member], list[PlannedActivi
     return members, activities, main_activity
 
 
-def build_plan(snapshot: AirSnapshot, body: PlanRequest) -> PlanResponse:
+def build_plan(
+    snapshot: AirSnapshot, body: PlanRequest, station: StationLookup = (None, "not_configured")
+) -> PlanResponse:
     members, activities, main_activity = resolve_profile(body)
     advice = [advise_member(snapshot, m, main_activity) for m in members]
     household = strictest([a.verdict for a in advice])
@@ -55,6 +58,8 @@ def build_plan(snapshot: AirSnapshot, body: PlanRequest) -> PlanResponse:
         indoor=advise_indoor(snapshot, body.home, household) if body.home else None,
         commute=compare_commute(body.commute, pm25) if body.commute else None,
         hourly=snapshot.hourly,
+        station=station[0],
+        station_status=station[1],
         explanation="",
         explanation_source="rules",
         disclaimer=DISCLAIMER,

@@ -211,3 +211,37 @@ def test_briefing_is_single_use_and_passes_note():
     assert first.json() == {"explanation": "Because air.", "explanation_source": "gemini"}
     assert advisor.notes == ["hello"]
     assert again.status_code == 404 and unknown.status_code == 404
+
+
+class FakeStations:
+    def __init__(self, result):
+        self.result, self.calls = result, []
+
+    async def nearest(self, latitude, longitude):
+        self.calls.append((latitude, longitude))
+        return self.result
+
+
+def test_station_observation_is_separate_from_model_estimate():
+    from datetime import UTC, datetime
+
+    from test_stations import latest, location
+
+    from aether.stations import build_observation
+
+    obs = build_observation(location(3, 1.0, 2.0), 2.0, latest(3)["results"], datetime.now(UTC))
+    stations = FakeStations((obs, "ok"))
+    app = create_app(Settings(), FakeAir(aqi=150), FakeAdvisor(), stations)
+    with TestClient(app) as client:
+        body = client.post("/api/plan", json={"location": "Testville"}).json()
+    assert stations.calls == [(1.0, 2.0)]
+    assert body["station_status"] == "ok"
+    assert body["station"]["readings"][0]["kind"] == "station_observation"
+    assert body["provenance"]["kind"] == "model_estimate"
+    assert body["aqi"] == 150 and body["pollutants"]["pm2_5"] == 30.0  # model values untouched
+
+
+def test_station_lookup_default_is_not_configured():
+    with client_for() as client:
+        body = client.post("/api/plan", json={"location": "Testville"}).json()
+    assert body["station"] is None and body["station_status"] == "not_configured"

@@ -11,6 +11,7 @@ import uuid
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Protocol
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -30,6 +31,7 @@ from .config import Settings
 from .models import Briefing, PlanRequest, PlanResponse
 from .security import SECURITY_HEADERS, RateLimiter, client_ip
 from .service import build_plan
+from .stations import OpenAQClient, StationLookup
 
 STATIC_DIR = Path(__file__).parent / "static"
 BRIEFING_TTL_SECONDS = 300
@@ -42,10 +44,15 @@ def _log(**fields: object) -> None:
     log.info(json.dumps(fields, separators=(",", ":")))
 
 
+class StationProvider(Protocol):
+    async def nearest(self, latitude: float, longitude: float) -> StationLookup: ...
+
+
 def create_app(
     settings: Settings | None = None,
     air: AirDataProvider | None = None,
     advisor: Advisor | None = None,
+    stations: StationProvider | None = None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     limiter = RateLimiter(settings.rate_limit_per_minute)
@@ -58,6 +65,9 @@ def create_app(
         timeout = httpx.Timeout(settings.request_timeout_seconds, connect=4)
         client = httpx.AsyncClient(timeout=timeout, headers={"User-Agent": "aether-ai"})
         app.state.air = air or OpenMeteoClient(client, settings.cache_ttl_seconds)
+        app.state.stations = stations or OpenAQClient(
+            client, settings.openaq_api_key, settings.cache_ttl_seconds
+        )
         app.state.advisor = advisor or GeminiAdvisor(
             settings.gemini_api_key,
             settings.gemini_model,
@@ -126,7 +136,8 @@ def create_app(
         snapshot = await request.app.state.air.snapshot(
             location=body.location, latitude=body.latitude, longitude=body.longitude
         )
-        result = build_plan(snapshot, body)
+        station = await request.app.state.stations.nearest(snapshot.latitude, snapshot.longitude)
+        result = build_plan(snapshot, body, station)
         briefing_id = secrets.token_urlsafe(16)
         pending.put(briefing_id, (result, body.note))
         return result.model_copy(

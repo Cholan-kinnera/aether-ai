@@ -18,6 +18,7 @@ def _int(name: str, default: int, minimum: int = 1) -> int:
 @dataclass(frozen=True)
 class Settings:
     gemini_api_key: str = ""
+    openaq_api_key: str = ""
     gemini_model: str = DEFAULT_MODEL
     gemini_calls_per_minute: int = 60
     cache_ttl_seconds: int = 600
@@ -29,6 +30,7 @@ class Settings:
     def from_env(cls) -> Settings:
         return cls(
             gemini_api_key=os.environ.get("GEMINI_API_KEY", "").strip(),
+            openaq_api_key=os.environ.get("OPENAQ_API_KEY", "").strip(),
             gemini_model=os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_MODEL,
             gemini_calls_per_minute=_int("GEMINI_CALLS_PER_MINUTE", 60),
             cache_ttl_seconds=_int("CACHE_TTL_SECONDS", 600),

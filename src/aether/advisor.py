@@ -78,6 +78,18 @@ def plan_facts(plan: PlanResponse) -> dict[str, Any]:
         ],
         "indoor_top_tip": plan.indoor.tips[0] if plan.indoor and plan.indoor.tips else None,
         "commute_summary": plan.commute.summary if plan.commute else None,
+        "nearest_station_measured": (
+            {
+                "distance_km": plan.station.distance_km,
+                "readings": {
+                    r.pollutant: f"{r.value:g} {r.unit}, {r.data_age_minutes} min old"
+                    for r in plan.station.readings
+                    if r.value is not None and not r.stale
+                },
+            }
+            if plan.station
+            else None
+        ),
     }
 
 
