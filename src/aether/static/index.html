@@ -3,70 +3,182 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="AETHER tells you whether the air is safe for your plans, based on your health and activity.">
+  <meta name="description" content="AETHER plans your family's day around winter smog: safest hours outdoors, indoor air steps and greener commutes, with the impact of each choice explained.">
+  <meta name="theme-color" content="#0b3d5c">
   <title>AETHER – Urban Air Quality Assistant</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230b5cad'/%3E%3Cpath d='M8 18c4-6 12-6 16 0' stroke='white' stroke-width='3' fill='none'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to main content</a>
   <header class="site-header">
-    <h1>AETHER</h1>
-    <p>Is the air right for <em>your</em> plans today?</p>
+    <div class="wrap">
+      <p class="brand" aria-hidden="true">AETHER</p>
+      <h1>Plan your family's day around the smog</h1>
+      <p class="lede">Safest hours outdoors, indoor air steps and greener trips, tailored to your household, with the impact of every choice explained.</p>
+    </div>
   </header>
 
-  <main id="main">
-    <form id="advice-form" novalidate aria-describedby="form-help">
-      <p id="form-help" class="help">Tell us where you are and what you plan to do. Nothing is stored.</p>
+  <main id="main" class="wrap">
+    <form id="plan-form" novalidate aria-describedby="form-help">
+      <p id="form-help" class="help">Only the location is required. Your household is saved on this device only.</p>
 
       <div class="field">
-        <label for="location">City or place</label>
+        <label for="location">City or neighbourhood</label>
         <div class="row">
           <input id="location" name="location" type="text" autocomplete="address-level2"
-                 maxlength="100" placeholder="e.g. Bengaluru" aria-describedby="location-error">
+                 maxlength="100" placeholder="e.g. Delhi" aria-describedby="location-error" required>
           <button type="button" id="geo-btn" class="secondary">Use my location</button>
         </div>
         <p id="location-error" class="error" hidden></p>
       </div>
 
       <fieldset>
-        <legend>Anyone sensitive to air pollution? (optional)</legend>
-        <div class="checks">
-          <label><input type="checkbox" name="groups" value="asthma"> Asthma / lung condition</label>
-          <label><input type="checkbox" name="groups" value="child"> Child</label>
-          <label><input type="checkbox" name="groups" value="elderly"> Older adult</label>
-          <label><input type="checkbox" name="groups" value="pregnant"> Pregnancy</label>
-          <label><input type="checkbox" name="groups" value="heart_condition"> Heart condition</label>
-        </div>
+        <legend>Your household</legend>
+        <ul id="members" class="stack" aria-label="Household members"></ul>
+        <button type="button" id="add-member" class="secondary small">+ Add a person</button>
       </fieldset>
 
-      <div class="field">
-        <label for="activity">Planned activity</label>
-        <select id="activity" name="activity">
-          <option value="">Let AETHER decide from my note (default: walking)</option>
-          <option value="rest">Resting indoors/outdoors</option>
-          <option value="walk">Walking</option>
-          <option value="commute">Commuting</option>
-          <option value="cycle">Cycling</option>
-          <option value="run">Running / intense exercise</option>
-        </select>
-      </div>
+      <fieldset>
+        <legend>Today's outdoor plans</legend>
+        <p class="help">AETHER finds the cleanest forecast hours for each one.</p>
+        <ul id="activities" class="stack" aria-label="Planned activities"></ul>
+        <button type="button" id="add-activity" class="secondary small">+ Add a plan</button>
+      </fieldset>
+
+      <details class="section">
+        <summary>Home and purifier (optional)</summary>
+        <div class="grid">
+          <div class="field">
+            <label for="area">Main room floor area (m²)</label>
+            <input id="area" type="number" inputmode="decimal" min="4" max="200" step="1" placeholder="e.g. 15">
+          </div>
+          <div class="field">
+            <label for="ceiling">Ceiling height (m)</label>
+            <input id="ceiling" type="number" inputmode="decimal" min="2" max="5" step="0.1" value="2.7">
+          </div>
+          <div class="field">
+            <label for="cadr">Purifier CADR (leave blank if none)</label>
+            <div class="row">
+              <input id="cadr" type="number" inputmode="decimal" min="0" max="3000" step="1" placeholder="e.g. 250">
+              <select id="cadr-unit" aria-label="CADR unit">
+                <option value="m3h">m³/h</option>
+                <option value="cfm">CFM</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="section">
+        <summary>Daily commute (optional)</summary>
+        <div class="grid">
+          <div class="field">
+            <label for="distance">One-way distance (km)</label>
+            <input id="distance" type="number" inputmode="decimal" min="0.5" max="100" step="0.5" placeholder="e.g. 8">
+          </div>
+          <div class="field">
+            <label for="mode">How you travel now</label>
+            <select id="mode">
+              <option value="car_petrol">Petrol car</option>
+              <option value="car_diesel">Diesel car</option>
+              <option value="car_hybrid">Hybrid car</option>
+              <option value="car_ev">Electric car</option>
+              <option value="motorbike">Motorbike / scooter</option>
+              <option value="taxi">Taxi</option>
+              <option value="bus">Bus</option>
+              <option value="metro">Metro / tram</option>
+              <option value="rail">Suburban rail</option>
+              <option value="cycle">Bicycle</option>
+              <option value="walk">Walking</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="occupants">People in the car</label>
+            <input id="occupants" type="number" min="1" max="7" step="1" value="1">
+          </div>
+          <div class="field">
+            <label for="trips">One-way trips per week</label>
+            <input id="trips" type="number" min="1" max="28" step="1" value="10">
+          </div>
+        </div>
+      </details>
 
       <div class="field">
         <label for="note">Anything else? (optional)</label>
-        <textarea id="note" name="note" rows="3" maxlength="300"
-                  placeholder="e.g. I have asthma and want to jog this evening"></textarea>
+        <textarea id="note" rows="2" maxlength="300"
+                  placeholder="e.g. My son has asthma and wants to play football after school"></textarea>
       </div>
 
-      <button type="submit" id="submit-btn">Check the air</button>
+      <div class="actions">
+        <button type="submit" id="submit-btn">Plan my day</button>
+        <button type="button" id="forget-btn" class="link">Forget saved household</button>
+      </div>
     </form>
 
-    <section id="results" aria-live="polite" aria-busy="false" tabindex="-1"></section>
+    <section id="results" aria-live="polite" aria-busy="false" tabindex="-1" aria-label="Your plan"></section>
   </main>
 
-  <footer>
-    <p>Data: Open-Meteo air-quality API. Explanations: Google Gemini (when configured).
-       General guidance only, not medical advice.</p>
+  <footer class="wrap">
+    <p>Air quality data by <a href="https://open-meteo.com/">Open-Meteo.com</a> (<a href="https://open-meteo.com/en/licence">CC BY 4.0</a>), based on Copernicus CAMS model forecasts. Emission factors: UK DESNZ 2026. Inhalation rates: US EPA Exposure Factors Handbook. Briefings by Google Gemini when available.</p>
+    <p>General guidance only, not medical advice.</p>
   </footer>
-  <script src="/static/app.js" defer></script>
+
+  <template id="member-tpl">
+    <li class="item">
+      <div class="field">
+        <label data-for="name">Name or role</label>
+        <input data-id="name" type="text" maxlength="40" placeholder="e.g. Grandma">
+      </div>
+      <fieldset class="inline">
+        <legend>Sensitive to air pollution?</legend>
+        <div class="checks">
+          <label><input type="checkbox" value="asthma"> Asthma / lung</label>
+          <label><input type="checkbox" value="child"> Child</label>
+          <label><input type="checkbox" value="elderly"> Older adult</label>
+          <label><input type="checkbox" value="pregnant"> Pregnant</label>
+          <label><input type="checkbox" value="heart_condition"> Heart condition</label>
+        </div>
+      </fieldset>
+      <button type="button" class="link remove">Remove</button>
+    </li>
+  </template>
+
+  <template id="activity-tpl">
+    <li class="item grid">
+      <div class="field">
+        <label data-for="label">Plan</label>
+        <input data-id="label" type="text" maxlength="40" placeholder="e.g. Evening walk">
+      </div>
+      <div class="field">
+        <label data-for="activity">Activity</label>
+        <select data-id="activity">
+          <option value="walk">Walking</option>
+          <option value="run">Running / sport</option>
+          <option value="cycle">Cycling</option>
+          <option value="commute">Commute</option>
+          <option value="rest">Sitting outdoors</option>
+        </select>
+      </div>
+      <div class="field">
+        <label data-for="duration">Hours</label>
+        <select data-id="duration">
+          <option value="0.5">0.5</option><option value="1" selected>1</option>
+          <option value="2">2</option><option value="3">3</option>
+        </select>
+      </div>
+      <div class="field">
+        <label data-for="earliest">Not before</label>
+        <select data-id="earliest" class="hour" data-default="6"></select>
+      </div>
+      <div class="field">
+        <label data-for="latest">Done by</label>
+        <select data-id="latest" class="hour" data-default="22"></select>
+      </div>
+      <button type="button" class="link remove">Remove</button>
+    </li>
+  </template>
+
+  <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>

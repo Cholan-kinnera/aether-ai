@@ -1,74 +1,96 @@
 import pytest
 from conftest import make_snapshot
 
-from aether.models import Activity, Group, Verdict
-from aether.rules import best_window, decide, exposure_multiplier, verdict_for
+from aether.models import Activity, Group, HourlyPoint, Member, Verdict
+from aether.rules import advise_member, cleanest_window, strictest, verdict_for
 
 
 @pytest.mark.parametrize(
-    ("value", "verdict"),
-    [(0, Verdict.GO), (50, Verdict.GO), (50.1, Verdict.CAUTION), (100, Verdict.CAUTION),
-     (100.1, Verdict.LIMIT), (150, Verdict.LIMIT), (150.1, Verdict.AVOID)],
+    ("aqi", "sensitive", "hard", "expected"),
+    [
+        (40, False, False, Verdict.GO),
+        (90, False, False, Verdict.GO),
+        (120, False, False, Verdict.CAUTION),
+        (180, False, False, Verdict.LIMIT),
+        (250, False, False, Verdict.AVOID),
+        (400, False, False, Verdict.AVOID),
+        (40, True, False, Verdict.GO),
+        (60, True, False, Verdict.CAUTION),
+        (120, True, False, Verdict.LIMIT),
+        (160, True, False, Verdict.AVOID),
+        (40, False, True, Verdict.CAUTION),
+        (120, False, True, Verdict.LIMIT),
+        (160, True, True, Verdict.AVOID),
+    ],
 )
-def test_verdict_bands(value, verdict):
-    assert verdict_for(value) is verdict
+def test_verdict_matrix(aqi, sensitive, hard, expected):
+    assert verdict_for(aqi, sensitive, hard) is expected
 
 
-def test_multiplier_components():
-    assert exposure_multiplier(set(), Activity.WALK) == 1.0
-    assert exposure_multiplier({Group.ASTHMA}, Activity.RUN) == pytest.approx(1.40)
+def test_same_air_differs_by_person():
+    snap = make_snapshot(aqi=120)
+    adult = advise_member(snap, Member(name="Dad"), Activity.WALK)
+    child = advise_member(snap, Member(name="Kid", groups=[Group.CHILD]), Activity.WALK)
+    assert adult.verdict is Verdict.CAUTION and child.verdict is Verdict.LIMIT
+    assert any("Sensitive-group" in r for r in child.reasons)
+    assert any("outdoor play" in a for a in child.actions)
 
 
-def test_group_bonus_is_capped():
-    everyone = set(Group)
-    assert exposure_multiplier(everyone, Activity.REST) == pytest.approx(1.5)
+def test_go_has_no_group_actions_and_hard_exercise_reason():
+    snap = make_snapshot(aqi=20)
+    advice = advise_member(snap, Member(groups=[Group.ASTHMA]), Activity.RUN)
+    assert advice.verdict is Verdict.CAUTION
+    assert any("breathing much more air" in r for r in advice.reasons)
+    go = advise_member(snap, Member(groups=[Group.ASTHMA]), Activity.REST)
+    assert go.verdict is Verdict.GO and len(go.actions) == 1
 
 
-def test_same_air_different_people_different_verdicts():
-    snap = make_snapshot(aqi=80)
-    general = decide(snap, set(), Activity.WALK)
-    asthmatic_runner = decide(snap, {Group.ASTHMA}, Activity.RUN)
-    assert general.verdict is Verdict.CAUTION
-    assert asthmatic_runner.verdict is Verdict.AVOID or asthmatic_runner.verdict is Verdict.LIMIT
-    assert asthmatic_runner.adjusted_aqi > general.adjusted_aqi
+def test_avoid_points_to_health_authority_without_diagnosis():
+    advice = advise_member(make_snapshot(aqi=320), Member(), Activity.WALK)
+    assert advice.verdict is Verdict.AVOID
+    assert any("local health authority" in a for a in advice.actions)
 
 
-def test_clean_air_is_go_with_no_group_actions():
-    decision = decide(make_snapshot(aqi=30), {Group.ASTHMA}, Activity.REST)
-    assert decision.verdict is Verdict.GO
-    assert len(decision.actions) == 1
+def test_no_dominant_pollutant():
+    advice = advise_member(make_snapshot(aqi=120, sub={"pm2_5": None}), Member(), Activity.WALK)
+    assert len(advice.reasons) == 1
 
 
-def test_avoid_includes_mask_group_and_pollutant_advice():
-    snap = make_snapshot(aqi=180, sub={"pm2_5": 180, "ozone": 10})
-    decision = decide(snap, {Group.ASTHMA}, Activity.RUN)
-    text = " ".join(decision.actions)
-    assert decision.verdict is Verdict.AVOID
-    assert "N95" in text and "inhaler" in text and "particles" in text
-    assert any("PM2.5" in r for r in decision.reasons)
+def test_strictest():
+    assert strictest([Verdict.GO, Verdict.LIMIT, Verdict.CAUTION]) is Verdict.LIMIT
+    assert strictest([]) is Verdict.GO
 
 
-def test_best_window_finds_cleanest_two_hours():
-    snap = make_snapshot(aqi=80)  # hourly: 80,60,40,45,90,120
-    window = best_window(snap, 1.0)
-    assert window is not None
-    assert window.start == "2026-11-19T12:00" and window.end == "2026-11-19T14:00"
-    assert window.mean_aqi == 42.5 and window.verdict is Verdict.GO
-    assert window.starts_now is False
+def test_cleanest_window_finds_lowest_block():
+    snap = make_snapshot(hourly=[100, 90, 40, 45, 90, 120])
+    w = cleanest_window(snap.hourly, 2)
+    assert (w.start[11:16], w.end[11:16], w.mean_aqi, w.starts_now) == (
+        "12:00",
+        "14:00",
+        42.5,
+        False,
+    )
 
 
-def test_best_window_starts_now_when_now_is_cleanest():
-    window = best_window(make_snapshot(aqi=20, hourly=[20, 25, 80, 90]), 1.0)
-    assert window is not None and window.starts_now
+def test_cleanest_window_skips_missing_and_respects_hours():
+    snap = make_snapshot(hourly=[50, None, 10, 20, 30, 40])
+    assert cleanest_window(snap.hourly, 2).start[11:16] == "12:00"
+    assert cleanest_window(snap.hourly, 1, earliest_hour=14).start[11:16] == "14:00"
+    assert cleanest_window(snap.hourly, 1, latest_hour=11).start[11:16] == "10:00"
+    assert cleanest_window(snap.hourly, 7) is None
 
 
-def test_best_window_skips_missing_values_and_handles_short_data():
-    assert best_window(make_snapshot(hourly=[None, None, None]), 1.0) is None
-    assert best_window(make_snapshot(hourly=[50]), 1.0) is None
-    window = best_window(make_snapshot(hourly=[10, None, 30, 35]), 1.0)
-    assert window is not None and window.start == "2026-11-19T12:00"
+def test_cleanest_window_crosses_midnight_and_avoids_taken():
+    snap = make_snapshot(hourly=[90, 10, 80], start_hour=23)
+    w = cleanest_window(snap.hourly, 1)
+    assert w.start == "2026-11-20T00:00"
+    from datetime import datetime
+
+    taken = [
+        (datetime.fromisoformat("2026-11-20T00:00"), datetime.fromisoformat("2026-11-20T01:00"))
+    ]
+    assert cleanest_window(snap.hourly, 1, taken=taken).start == "2026-11-20T01:00"
 
 
-def test_best_window_verdict_uses_multiplier():
-    window = best_window(make_snapshot(hourly=[80, 80, 80]), 1.5)
-    assert window is not None and window.verdict is Verdict.LIMIT
+def test_cleanest_window_empty():
+    assert cleanest_window([HourlyPoint(time="2026-11-19T10:00", us_aqi=None)], 1) is None

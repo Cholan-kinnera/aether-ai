@@ -1,173 +1,151 @@
-"""Transparent, testable decision engine.
+"""Transparent, testable decision engine. The verdict is computed here, never by an LLM.
 
-The verdict is computed here, never by an LLM. An "exposure-adjusted AQI" scales the
-measured AQI by how sensitive the person is and how much air their activity makes them
-breathe, then maps it onto the standard EPA bands.
+Verdicts follow the EPA AQI category descriptions (airnow.gov/aqi/aqi-basics): sensitive
+groups may be affected from "Unhealthy for Sensitive Groups", the general public from
+"Unhealthy". Hard exercise moves one step stricter because people breathe several times
+more air when exercising hard (EPA Exposure Factors Handbook 2011, Table 6-2).
 """
+
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 
-from .aqi import POLLUTANT_LABELS, categorize, dominant_pollutant
-from .models import (
-    Activity,
-    AirSnapshot,
-    BestWindow,
-    Decision,
-    Group,
-    HourlyPoint,
-    Verdict,
-)
+from .aqi import POLLUTANT_LABELS, categorize, category_index, dominant_pollutant
+from .models import Activity, AirSnapshot, Group, HourlyPoint, Member, MemberAdvice, TimeWindow
+from .models import Verdict as V
 
-GROUP_BONUS = 0.25
-MAX_GROUP_BONUS = 0.50
-ACTIVITY_BONUS: dict[Activity, float] = {
-    Activity.REST: 0.0,
-    Activity.WALK: 0.0,
-    Activity.COMMUTE: 0.05,
-    Activity.CYCLE: 0.10,
-    Activity.RUN: 0.15,
-}
-WINDOW_HOURS = 2
+# Verdict per EPA category index (Good, Moderate, USG, Unhealthy, Very Unhealthy, Hazardous).
+SENSITIVE_LADDER = (V.GO, V.CAUTION, V.LIMIT, V.AVOID, V.AVOID, V.AVOID)
+GENERAL_LADDER = (V.GO, V.GO, V.CAUTION, V.LIMIT, V.AVOID, V.AVOID)
+STRICTNESS = (V.GO, V.CAUTION, V.LIMIT, V.AVOID)
+HARD_EXERCISE = {Activity.RUN, Activity.CYCLE}
 LOOKAHEAD_HOURS = 24
 
 GROUP_LABELS = {
     Group.ASTHMA: "asthma or a lung condition",
-    Group.CHILD: "children",
-    Group.ELDERLY: "older adults",
+    Group.CHILD: "a child",
+    Group.ELDERLY: "an older adult",
     Group.PREGNANT: "pregnancy",
     Group.HEART: "a heart condition",
 }
 
+_BASE_ACTIONS: dict[V, list[str]] = {
+    V.GO: ["Air is fine for normal outdoor plans."],
+    V.CAUTION: [
+        "Outdoor plans are fine; keep hard exercise shorter and take breaks.",
+        "Go indoors if you notice coughing or throat irritation.",
+    ],
+    V.LIMIT: [
+        "Cut outdoor time and intensity, or move exercise indoors.",
+        "If you go out, a well-fitted N95/FFP2 mask filters fine particles.",
+    ],
+    V.AVOID: [
+        "Stay indoors with windows closed and a purifier running if you have one.",
+        "Skip outdoor exercise; if you must go out, wear a well-fitted N95/FFP2 mask.",
+    ],
+}
 
-def exposure_multiplier(groups: set[Group], activity: Activity) -> float:
-    return 1.0 + min(GROUP_BONUS * len(groups), MAX_GROUP_BONUS) + ACTIVITY_BONUS[activity]
+_GROUP_ACTIONS: dict[Group, str] = {
+    Group.ASTHMA: "Keep the reliever inhaler at hand and follow the asthma action plan.",
+    Group.CHILD: "Keep outdoor play short and calm; watch for coughing.",
+    Group.ELDERLY: "Avoid long outdoor stays and rest often.",
+    Group.PREGNANT: "Limit time near traffic and avoid outdoor exertion.",
+    Group.HEART: "Avoid outdoor exertion and contact a doctor if symptoms appear.",
+}
+
+_POLLUTANT_ACTIONS: dict[str, str] = {
+    "ozone": "Ozone peaks in afternoon sun; mornings and evenings are usually better.",
+    "nitrogen_dioxide": "NO₂ comes mostly from traffic; choose quiet streets or parks.",
+    "pm2_5": "Fine particles pass through cloth masks; an N95/FFP2 is the effective option.",
+}
+
+URGENT_HELP = (
+    "For chest pain, severe breathlessness or wheezing, seek medical help or follow your "
+    "local health authority's guidance."
+)
 
 
-def verdict_for(adjusted_aqi: float) -> Verdict:
-    if adjusted_aqi <= 50:
-        return Verdict.GO
-    if adjusted_aqi <= 100:
-        return Verdict.CAUTION
-    if adjusted_aqi <= 150:
-        return Verdict.LIMIT
-    return Verdict.AVOID
+def verdict_for(aqi: float, sensitive: bool, hard_exercise: bool = False) -> V:
+    ladder = SENSITIVE_LADDER if sensitive else GENERAL_LADDER
+    verdict = ladder[category_index(aqi)]
+    if hard_exercise:
+        verdict = STRICTNESS[min(STRICTNESS.index(verdict) + 1, len(STRICTNESS) - 1)]
+    return verdict
 
 
-def _window_start(points: list[HourlyPoint], start: int, hours: int) -> list[float] | None:
-    values = [p.us_aqi for p in points[start : start + hours]]
-    if len(values) < hours or any(v is None for v in values):
-        return None
-    return [float(v) for v in values if v is not None]
+def strictest(verdicts: Sequence[V]) -> V:
+    return max(verdicts, key=STRICTNESS.index, default=V.GO)
 
 
-def best_window(snapshot: AirSnapshot, multiplier: float) -> BestWindow | None:
-    """Cleanest consecutive WINDOW_HOURS block within the next LOOKAHEAD_HOURS."""
-    first = snapshot.current_index
-    last = min(len(snapshot.hourly), first + LOOKAHEAD_HOURS)
+def _parse(time: str) -> datetime:
+    return datetime.fromisoformat(time)
+
+
+def cleanest_window(
+    hourly: Sequence[HourlyPoint],
+    hours: int,
+    earliest_hour: int = 0,
+    latest_hour: int = 24,
+    taken: Sequence[tuple[datetime, datetime]] = (),
+) -> TimeWindow | None:
+    """Lowest mean-AQI block of ``hours`` consecutive hours in the next 24 hours.
+
+    Blocks must lie within [earliest_hour, latest_hour) local time, have no missing
+    values and not overlap ``taken`` intervals.
+    """
+    points = list(hourly[:LOOKAHEAD_HOURS])
     best: tuple[float, int] | None = None
-    for start in range(first, last):
-        values = _window_start(snapshot.hourly[:last], start, WINDOW_HOURS)
-        if values is None:
+    for start in range(len(points) - hours + 1):
+        block = points[start : start + hours]
+        begin = _parse(block[0].time)
+        end = begin + timedelta(hours=hours)
+        end_hour = begin.hour + hours
+        if begin.hour < earliest_hour or end_hour > latest_hour:
             continue
-        mean = sum(values) / len(values)
+        if any(begin < t_end and t_start < end for t_start, t_end in taken):
+            continue
+        values = [p.us_aqi for p in block]
+        if any(v is None for v in values):
+            continue
+        mean = sum(v for v in values if v is not None) / hours
         if best is None or mean < best[0]:
             best = (mean, start)
     if best is None:
         return None
     mean, start = best
-    begin = datetime.fromisoformat(snapshot.hourly[start].time)
-    end = begin + timedelta(hours=WINDOW_HOURS)
-    return BestWindow(
+    begin = _parse(points[start].time)
+    return TimeWindow(
         start=begin.strftime("%Y-%m-%dT%H:%M"),
-        end=end.strftime("%Y-%m-%dT%H:%M"),
+        end=(begin + timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M"),
         mean_aqi=round(mean, 1),
-        verdict=verdict_for(mean * multiplier),
-        starts_now=start == first,
+        starts_now=start == 0,
     )
 
 
-def _reasons(
-    snapshot: AirSnapshot,
-    adjusted: float,
-    multiplier: float,
-    groups: set[Group],
-    activity: Activity,
-) -> list[str]:
-    category = categorize(snapshot.aqi)
+def advise_member(snapshot: AirSnapshot, member: Member, activity: Activity) -> MemberAdvice:
+    groups = sorted(set(member.groups))
+    sensitive = bool(groups)
+    hard = activity in HARD_EXERCISE
+    verdict = verdict_for(snapshot.aqi, sensitive, hard)
     dominant = dominant_pollutant(snapshot.sub_indices)
-    reasons = [f"Current AQI is {round(snapshot.aqi)} ({category})."]
+
+    reasons = [f"US AQI is {round(snapshot.aqi)} ({categorize(snapshot.aqi)})."]
     if dominant:
-        label = POLLUTANT_LABELS.get(dominant, dominant)
-        reasons.append(f"{label} is the main pollutant right now.")
-    if groups:
-        names = ", ".join(GROUP_LABELS[g] for g in sorted(groups))
-        reasons.append(f"Extra caution applied for {names}.")
-    if ACTIVITY_BONUS[activity] > 0:
-        reasons.append(
-            f"{activity.value.capitalize()} makes you breathe more air, so exposure counts more."
-        )
-    if multiplier > 1:
-        reasons.append(f"Exposure-adjusted AQI for you is {round(adjusted)}.")
-    return reasons
+        reasons.append(f"{POLLUTANT_LABELS.get(dominant, dominant)} is the main pollutant.")
+    if sensitive:
+        names = ", ".join(GROUP_LABELS[g] for g in groups)
+        reasons.append(f"Sensitive-group guidance applies ({names}).")
+    if hard:
+        reasons.append(f"{activity.value.capitalize()} means breathing much more air per minute.")
 
-
-_BASE_ACTIONS: dict[Verdict, list[str]] = {
-    Verdict.GO: ["Air is clean. Enjoy your outdoor plans as normal."],
-    Verdict.CAUTION: [
-        "Fine for most outdoor plans; keep strenuous effort shorter than usual.",
-        "Stop and rest indoors if you notice coughing or throat irritation.",
-    ],
-    Verdict.LIMIT: [
-        "Cut outdoor time and intensity, or move hard exercise indoors.",
-        "If you must go out, wear a well-fitted N95/FFP2 mask.",
-        "Keep windows closed and use a HEPA purifier if you have one.",
-    ],
-    Verdict.AVOID: [
-        "Stay indoors with windows closed and a purifier running if possible.",
-        "Skip outdoor exercise today; if you go out, wear a well-fitted N95/FFP2 mask.",
-        "Seek medical advice if you have chest tightness, wheezing or breathlessness.",
-    ],
-}
-
-_GROUP_ACTIONS: dict[Group, str] = {
-    Group.ASTHMA: "Keep your quick-relief inhaler within reach and follow your action plan.",
-    Group.CHILD: "Keep children's outdoor play short and watch for coughing.",
-    Group.ELDERLY: "Older adults should avoid long outdoor stays and rest often.",
-    Group.PREGNANT: "Limit time near traffic and avoid exertion outdoors.",
-    Group.HEART: "Avoid exertion outdoors and contact your doctor if symptoms appear.",
-}
-
-_POLLUTANT_ACTIONS: dict[str, str] = {
-    "ozone": "Ozone peaks in afternoon sun; mornings and evenings are usually better.",
-    "nitrogen_dioxide": "Choose quiet streets or parks away from heavy traffic.",
-    "pm2_5": "Fine particles pass through cloth masks; an N95/FFP2 is the effective option.",
-}
-
-
-def _actions(verdict: Verdict, groups: set[Group], dominant: str | None) -> list[str]:
     actions = list(_BASE_ACTIONS[verdict])
-    if verdict in (Verdict.LIMIT, Verdict.AVOID, Verdict.CAUTION):
-        actions += [_GROUP_ACTIONS[g] for g in sorted(groups)]
-        if dominant in _POLLUTANT_ACTIONS and verdict is not Verdict.CAUTION:
+    if verdict is not V.GO:
+        actions += [_GROUP_ACTIONS[g] for g in groups]
+        if dominant in _POLLUTANT_ACTIONS:
             actions.append(_POLLUTANT_ACTIONS[dominant])
-    return actions
-
-
-def decide(snapshot: AirSnapshot, groups: set[Group], activity: Activity) -> Decision:
-    """Turn measurements plus a profile into a verdict, reasons, actions and best time."""
-    multiplier = exposure_multiplier(groups, activity)
-    adjusted = snapshot.aqi * multiplier
-    verdict = verdict_for(adjusted)
-    dominant = dominant_pollutant(snapshot.sub_indices)
-    return Decision(
-        aqi=snapshot.aqi,
-        adjusted_aqi=round(adjusted, 1),
-        category=categorize(snapshot.aqi),
-        dominant_pollutant=dominant,
-        verdict=verdict,
-        multiplier=round(multiplier, 2),
-        reasons=_reasons(snapshot, adjusted, multiplier, groups, activity),
-        actions=_actions(verdict, groups, dominant),
-        best_window=best_window(snapshot, multiplier),
+    if verdict is V.AVOID or (sensitive and verdict is V.LIMIT):
+        actions.append(URGENT_HELP)
+    return MemberAdvice(
+        name=member.name, groups=groups, verdict=verdict, reasons=reasons, actions=actions
     )

@@ -1,4 +1,5 @@
 """Deterministic extraction of a user profile from a free-text note."""
+
 from __future__ import annotations
 
 import re

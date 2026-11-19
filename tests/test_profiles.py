@@ -20,7 +20,9 @@ def test_most_intense_activity_wins():
     assert activity is Activity.RUN
 
 
-@pytest.mark.parametrize("note", ["I do not have asthma", "no asthma here", "never had a heart condition"])
+@pytest.mark.parametrize(
+    "note", ["I do not have asthma", "no asthma here", "never had a heart condition"]
+)
 def test_negation_is_respected(note):
     groups, _ = extract_from_note(note)
     assert groups == set()
@@ -33,6 +35,8 @@ def test_multiple_groups():
 
 
 def test_pregnancy_and_heart_and_cycling():
-    groups, activity = extract_from_note("I am pregnant, heart disease runs in family, cycling to work")
+    groups, activity = extract_from_note(
+        "I am pregnant, heart disease runs in family, cycling to work"
+    )
     assert Group.PREGNANT in groups and Group.HEART in groups
     assert activity is Activity.CYCLE

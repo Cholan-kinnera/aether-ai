@@ -1,20 +1,35 @@
 import pytest
 
-from aether.aqi import categorize, dominant_pollutant
+from aether.aqi import categorize, category_index, dominant_pollutant
 
 
 @pytest.mark.parametrize(
     ("aqi", "name"),
-    [(0, "Good"), (50, "Good"), (51, "Moderate"), (100, "Moderate"), (101, "Unhealthy for Sensitive Groups"),
-     (150, "Unhealthy for Sensitive Groups"), (151, "Unhealthy"), (200, "Unhealthy"),
-     (201, "Very Unhealthy"), (300, "Very Unhealthy"), (301, "Hazardous"), (480, "Hazardous")],
+    [
+        (0, "Good"),
+        (50, "Good"),
+        (51, "Moderate"),
+        (100, "Moderate"),
+        (101, "Unhealthy for Sensitive Groups"),
+        (150, "Unhealthy for Sensitive Groups"),
+        (151, "Unhealthy"),
+        (200, "Unhealthy"),
+        (201, "Very Unhealthy"),
+        (300, "Very Unhealthy"),
+        (301, "Hazardous"),
+        (480, "Hazardous"),
+    ],
 )
 def test_category_boundaries(aqi, name):
     assert categorize(aqi) == name
 
 
+def test_category_index_range():
+    assert category_index(0) == 0 and category_index(500) == 5
+
+
 def test_negative_aqi_rejected():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="negative"):
         categorize(-1)
 
 

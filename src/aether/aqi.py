@@ -1,4 +1,8 @@
-"""US EPA AQI categories and pollutant helpers (pure functions)."""
+"""US EPA AQI categories and pollutant helpers (pure functions).
+
+Category ranges and descriptions: https://www.airnow.gov/aqi/aqi-basics/
+"""
+
 from __future__ import annotations
 
 CATEGORIES: tuple[tuple[str, int], ...] = (
@@ -8,6 +12,7 @@ CATEGORIES: tuple[tuple[str, int], ...] = (
     ("Unhealthy", 200),
     ("Very Unhealthy", 300),
 )
+HAZARDOUS = "Hazardous"
 
 POLLUTANT_LABELS = {
     "pm2_5": "PM2.5",
@@ -19,14 +24,20 @@ POLLUTANT_LABELS = {
 }
 
 
-def categorize(aqi: float) -> str:
-    """Return the EPA category name for an AQI value."""
+def category_index(aqi: float) -> int:
+    """0 = Good … 5 = Hazardous."""
     if aqi < 0:
         raise ValueError("AQI cannot be negative")
-    for name, upper in CATEGORIES:
+    for index, (_, upper) in enumerate(CATEGORIES):
         if aqi <= upper:
-            return name
-    return "Hazardous"
+            return index
+    return len(CATEGORIES)
+
+
+def categorize(aqi: float) -> str:
+    """Return the EPA category name for an AQI value."""
+    index = category_index(aqi)
+    return CATEGORIES[index][0] if index < len(CATEGORIES) else HAZARDOUS
 
 
 def dominant_pollutant(sub_indices: dict[str, float | None]) -> str | None:
