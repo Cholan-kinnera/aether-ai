@@ -79,7 +79,11 @@ uv run --env-file .env uvicorn aether.api:app --reload
 # open http://localhost:8000
 ```
 
-## Deploy (Google Cloud Run)
+## Deploy
+**Render (free):** New → Blueprint → pick this repo. `render.yaml` defines the service; paste
+`GEMINI_API_KEY` when Render asks for it.
+
+**Google Cloud Run:**
 ```bash
 gcloud run deploy aether-ai --source . --region asia-south1 --allow-unauthenticated \
   --set-secrets GEMINI_API_KEY=gemini-api-key:latest --set-env-vars TRUSTED_PROXY_HOPS=1
