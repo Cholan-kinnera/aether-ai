@@ -1,8 +1,9 @@
 // Safe DOM builders shared by both pages. Text goes in via textContent only (never innerHTML),
 // so provider or user data can never inject markup.
-import { VERDICTS, categoryOf } from "./format.js";
+import { VERDICTS } from "./format.js";
+import { categoryOf } from "./config.js";
 
-/** @typedef {import("./api").Verdict} Verdict */
+/** @typedef {import("#api").Verdict} Verdict */
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 let headingId = 0;
@@ -109,4 +110,15 @@ export function pick(root, selector) {
   const node = root.querySelector(selector);
   if (!node) throw new Error(`${selector} is missing`);
   return /** @type {T} */ (node);
+}
+
+/**
+ * A table header cell with attributes (scope, rowspan, colspan).
+ * @param {string} text
+ * @param {Record<string, string>} attrs
+ */
+export function th(text, attrs) {
+  const cell = el("th", text);
+  Object.entries(attrs).forEach(([key, value]) => cell.setAttribute(key, value));
+  return cell;
 }

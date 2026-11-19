@@ -224,7 +224,7 @@ test.describe("landing", () => {
     const summary = page.getByText("Is this medical advice?");
     await summary.focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByText(/turns public air-quality data and published guidance/)).toBeVisible();
+    await expect(page.getByText("turns public air-quality data and published guidance")).toBeVisible();
   });
 
   test("custom cursor follows a mouse, grows over links, and never appears on touch", async ({

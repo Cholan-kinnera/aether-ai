@@ -1,5 +1,5 @@
-# Formatted by Prettier: JavaScript, TypeScript declarations and JSON config only.
-# Python is formatted by ruff; HTML, CSS and Markdown are hand-formatted.
+# Prettier formats JavaScript, TypeScript declarations, CSS, JSON and YAML. Python is formatted by
+# ruff. Jinja templates and Markdown are hand-formatted (line length is checked by the tests).
 node_modules/
 .venv/
 src/aether/static/vendor/
@@ -7,6 +7,5 @@ test-results/
 playwright-report/
 package-lock.json
 *.html
-*.css
 *.md
 *.py

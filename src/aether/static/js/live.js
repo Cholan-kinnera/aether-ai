@@ -1,9 +1,11 @@
 // "Right now" on the landing page: live forecast + nearest station for a few cities.
 // Real data only (POST /api/plan, cached server-side); text via textContent, never innerHTML.
-import { ageText, categoryOf, fmt, hourLabel } from "./format.js";
-import { byId, categoryBadge, el, svg } from "./dom.js";
+import { ageText, fmt, hourLabel } from "./format.js";
+import { byId, categoryBadge, el } from "./dom.js";
+import { LIVE_CHART, barChart } from "./chart.js";
+import { STALE_TEXT, categoryOf } from "./config.js";
 
-/** @typedef {import("./api").PlanResponse} PlanResponse */
+/** @typedef {import("#api").PlanResponse} PlanResponse */
 
 const box = byId("live");
 const chips = /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll(".chip[data-city]")]);
@@ -11,6 +13,11 @@ const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 /** @type {Map<string, PlanResponse>} */
 const cache = new Map();
 let current = 0;
+const HOURS_SHOWN = 24;
+const COUNT_UP_MS = 900;
+
+/** Fast start, gentle stop: 1 - (1 - t)^3. */
+const easeOutCubic = (/** @type {number} */ t) => 1 - (1 - t) * (1 - t) * (1 - t);
 
 /**
  * Count a number up to its value (instantly with reduced motion).
@@ -25,8 +32,8 @@ function countUp(node, target) {
   const start = performance.now();
   /** @param {number} now */
   const step = (now) => {
-    const t = Math.min(1, (now - start) / 900);
-    node.textContent = String(Math.round(target * (1 - (1 - t) ** 3)));
+    const t = Math.min(1, (now - start) / COUNT_UP_MS);
+    node.textContent = String(Math.round(target * easeOutCubic(t)));
     if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
@@ -34,41 +41,15 @@ function countUp(node, target) {
 
 /** @param {PlanResponse} d */
 function chart(d) {
-  const hours = d.hourly.slice(0, 24);
-  const fig = el("figure", undefined, "live-chart");
-  const w = 24 * 14;
-  const max = Math.max(200, ...hours.map((h) => h.us_aqi || 0));
-  const plot = svg("svg", { viewBox: `0 0 ${w} 132`, "aria-hidden": "true", focusable: "false" });
+  const hours = d.hourly.slice(0, HOURS_SHOWN);
   const win = d.best_window;
-  hours.forEach((h, i) => {
-    if (h.us_aqi === null) return;
-    const height = Math.max(2, (h.us_aqi / max) * 104);
-    const bar = svg("rect", { x: i * 14 + 2, y: 108 - height, width: 10, height, rx: 2 });
-    const cat = categoryOf(h.us_aqi);
-    bar.setAttribute("class", `bar cat-${cat?.key ?? "unknown"}`);
-    bar.style.transitionDelay = `${i * 25}ms`;
-    plot.append(bar);
-    if (i % 6 === 0) {
-      const label = svg("text", {
-        x: i === 0 ? 2 : i * 14 + 7,
-        y: 124,
-        "text-anchor": i === 0 ? "start" : "middle",
-      });
-      label.textContent = hourLabel(h.time);
-      plot.append(label);
-    }
-  });
-  if (win) {
-    const i = hours.findIndex((h) => h.time === win.start);
-    if (i >= 0) {
-      plot.append(svg("rect", { x: i * 14, y: 0, width: 28, height: 110, rx: 4, class: "window" }));
-    }
-  }
+  const fig = el("figure", undefined, "live-chart");
   const cap = el("figcaption");
   cap.textContent = win
-    ? `Next 24 hours of forecast US AQI. Cleanest two hours: ${hourLabel(win.start)} to ${hourLabel(win.end)}, average ${fmt(win.mean_aqi)}.`
+    ? `Next 24 hours of forecast US AQI. Cleanest two hours: ${hourLabel(win.start)} to ` +
+      `${hourLabel(win.end)}, average ${fmt(win.mean_aqi)}.`
     : "Next 24 hours of forecast US AQI.";
-  fig.append(plot, cap);
+  fig.append(barChart(hours, LIVE_CHART, win ? hours.findIndex((h) => h.time === win.start) : -1), cap);
   return fig;
 }
 
@@ -87,7 +68,7 @@ function render(d, city) {
   left.append(
     el(
       "p",
-      `Model estimate (CAMS), fetched ${ageText(p.data_age_minutes)}.${p.stale ? " Stale: older than 3 hours." : ""}`,
+      `Model estimate (CAMS), fetched ${ageText(p.data_age_minutes)}.${p.stale ? ` ${STALE_TEXT}` : ""}`,
       "meta",
     ),
   );

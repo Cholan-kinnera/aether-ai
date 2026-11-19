@@ -5,7 +5,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json",
-    "format:check": "prettier --check \"src/aether/static/js/**/*.{js,ts}\" \"tests/**/*.mjs\" \"*.mjs\" \"*.json\" \".github/**/*.yml\"",
+    "format:check": "prettier --check \"src/aether/static/js/**/*.js\" \"src/aether/static/css/*.css\" \"types/*.ts\" \"tests/**/*.mjs\" \"*.mjs\" \"*.json\" \".github/**/*.yml\"",
     "test:unit": "node --test tests/js/",
     "test:e2e": "playwright test",
     "vendor": "mkdir -p src/aether/static/vendor/fonts && cp node_modules/gsap/dist/gsap.min.js node_modules/gsap/dist/ScrollTrigger.min.js node_modules/lenis/dist/lenis.min.js src/aether/static/vendor/ && cp node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-standard-normal.woff2 src/aether/static/vendor/fonts/bricolage-grotesque.woff2 && cp node_modules/@fontsource-variable/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-wght-normal.woff2 src/aether/static/vendor/fonts/atkinson-hyperlegible-next.woff2"
@@ -15,7 +15,9 @@
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.65.1",
     "eslint": "10.15.0",
+    "eslint-plugin-jsdoc": "65.5.0",
     "globals": "17.14.0",
+    "jscpd": "5.4.3",
     "prettier": "3.10.1",
     "typescript": "7.0.2"
   },

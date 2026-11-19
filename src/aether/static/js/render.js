@@ -1,10 +1,13 @@
 // Result cards for a plan. Pure builders: each takes API data and returns DOM nodes.
-import { ageText, categoryOf, fmt, hourLabel } from "./format.js";
-import { card, categoryBadge, el, list, svg, verdictBadge } from "./dom.js";
+import { ageText, fmt, hourLabel } from "./format.js";
+import { card, categoryBadge, el, list, th, verdictBadge } from "./dom.js";
+import { PLAN_CHART, barChart } from "./chart.js";
+import { CONFIG, STALE_TEXT, categoryOf } from "./config.js";
+import { renderCommute, renderIndoor } from "./impact.js";
 
-/** @typedef {import("./api").PlanResponse} PlanResponse */
-/** @typedef {import("./api").HourlyPoint} HourlyPoint */
-/** @typedef {import("./api").ModeOption} ModeOption */
+/** @typedef {import("#api").PlanResponse} PlanResponse */
+/** @typedef {import("#api").HourlyPoint} HourlyPoint */
+/** @typedef {import("#api").ModeOption} ModeOption */
 
 /**
  * Type guard for filtering out cards a plan does not have.
@@ -14,20 +17,13 @@ import { card, categoryBadge, el, list, svg, verdictBadge } from "./dom.js";
  */
 const present = (x) => x !== null && x !== undefined && x !== false;
 
-/** @type {Record<string, string>} */
-const POLLUTANT_LABELS = {
-  pm2_5: "PM2.5",
-  pm10: "PM10",
-  nitrogen_dioxide: "NO₂",
-  ozone: "O₃",
-  sulphur_dioxide: "SO₂",
-  carbon_monoxide: "CO",
-};
-const STALE = "Stale: older than 3 hours.";
+// Readings under 1 (ppm gases such as CO) need more decimals to be meaningful.
+const SMALL_VALUE_DIGITS = 3;
 /** @type {Record<string, string>} */
 const STATION_STATUS = {
   none_nearby:
-    "No monitoring station within 25 km has reported in the last 24 hours, so only the model estimate above is available.",
+    `No monitoring station within ${CONFIG.stationRadiusKm} km has reported in the last ` +
+    `${CONFIG.stationRecentHours} hours, so only the model estimate above is available.`,
   unavailable: "Station measurements are unavailable right now; the model estimate above is unaffected.",
 };
 /** @type {Record<"gemini" | "rules" | "pending", string>} */
@@ -44,7 +40,7 @@ function pollutantList(d) {
   const dl = el("dl", undefined, "pollutants");
   rows.forEach(([key, value]) => {
     const div = el("div", undefined, key === d.dominant_pollutant ? "dominant" : undefined);
-    div.append(el("dt", POLLUTANT_LABELS[key] || key), el("dd", `${fmt(value, 1)} µg/m³`));
+    div.append(el("dt", CONFIG.pollutantLabels[key] || key), el("dd", `${fmt(value, 1)} µg/m³`));
     dl.append(div);
   });
   return dl;
@@ -81,18 +77,19 @@ function renderOverview(d) {
       `Model estimate (${p.model}) for ${p.observed_at.replace("T", " ")} local time · fetched ${ageText(p.data_age_minutes)}. `,
     ),
   );
-  if (p.stale) meta.append(el("strong", STALE, "stale"));
+  if (p.stale) meta.append(el("strong", STALE_TEXT, "stale"));
   section.append(top, meta, ...[pollutantList(d), weatherNote(d.weather)].filter(present));
   return section;
 }
 
-/** @param {import("./api").StationReading} r */
+/** @param {import("#api").StationReading} r */
 function stationReading(r) {
   const div = el("div");
-  const value = r.value === null ? "no valid reading" : `${fmt(r.value, r.value < 1 ? 3 : 1)} ${r.unit}`;
+  const value =
+    r.value === null ? "no valid reading" : `${fmt(r.value, r.value < 1 ? SMALL_VALUE_DIGITS : 1)} ${r.unit}`;
   const age = r.data_age_minutes === null ? "time unknown" : ageText(r.data_age_minutes);
   div.append(el("dt", r.label), el("dd", value), el("dd", age, "help"));
-  if (r.stale) div.append(el("dd", STALE, "stale"));
+  if (r.stale) div.append(el("dd", STALE_TEXT, "stale"));
   return div;
 }
 
@@ -143,7 +140,7 @@ function renderMembers(d) {
   return section;
 }
 
-/** @param {import("./api").ScheduledActivity} s */
+/** @param {import("#api").ScheduledActivity} s */
 function scheduleItem(s) {
   const li = el("li");
   li.append(el("strong", s.label));
@@ -184,32 +181,6 @@ function renderSchedule(d) {
   return section;
 }
 
-// Bars are decorative (aria-hidden); the same numbers are in the table for screen readers.
-/** @param {HourlyPoint[]} hourly */
-function chartSvg(hourly) {
-  const max = Math.max(100, ...hourly.map((p) => p.us_aqi || 0));
-  const plot = svg("svg", { viewBox: `0 0 ${24 * 14} 130`, "aria-hidden": "true" });
-  hourly.forEach((p, i) => {
-    if (p.us_aqi === null) return;
-    const h = (p.us_aqi / max) * 110;
-    plot.append(
-      svg("rect", {
-        x: i * 14 + 1,
-        y: 115 - h,
-        width: 12,
-        height: h,
-        class: `bar cat-${categoryOf(p.us_aqi)?.key ?? "unknown"}`,
-      }),
-    );
-    if (i % 3 === 0) {
-      const label = svg("text", { x: i * 14 + 7, y: 128, "text-anchor": "middle" });
-      label.textContent = hourLabel(p.time);
-      plot.append(label);
-    }
-  });
-  return plot;
-}
-
 /** @param {HourlyPoint[]} hourly */
 function hourlyTable(hourly) {
   const table = el("table");
@@ -233,99 +204,8 @@ function renderChart(hourly) {
   const figure = el("figure", undefined, "chart");
   const details = el("details");
   details.append(el("summary", "Hourly values (table)"), hourlyTable(hourly));
-  figure.append(el("figcaption", "US AQI forecast, next 24 hours"), chartSvg(hourly), details);
+  figure.append(el("figcaption", "US AQI forecast, next 24 hours"), barChart(hourly, PLAN_CHART), details);
   return figure;
-}
-
-/** @param {import("./api").IndoorAdvice} i */
-function renderIndoor(i) {
-  const section = card("Indoor air plan");
-  const facts = [
-    `Room volume: ${fmt(i.room_volume_m3)} m³. Recommended purifier CADR: about ${fmt(i.recommended_cadr_m3h)} m³/h (EPA sizing chart).`,
-  ];
-  if (i.purifier_cadr_m3h) {
-    facts.push(
-      `Your purifier gives about ${fmt(i.clean_air_changes_per_hour, 1)} clean-air changes per hour and could cut particles by 90% in roughly ${i.minutes_to_cut_particles_90pct} minutes (ideal conditions). ${i.purifier_adequate ? "It is suitably sized." : "It is undersized for this room."}`,
-    );
-  }
-  const details = el("details");
-  details.append(el("summary", "Assumptions"), list(i.assumptions));
-  section.append(list(facts, "facts"), el("h3", "Steps for today"), list(i.tips), details);
-  return section;
-}
-
-/**
- * @param {string} text
- * @param {Record<string, string>} attrs
- */
-function th(text, attrs) {
-  const cell = el("th", text);
-  Object.entries(attrs).forEach(([key, value]) => cell.setAttribute(key, value));
-  return cell;
-}
-
-// Two header rows keep the two impacts apart: climate (whole week) and personal exposure (per trip).
-/** @param {HTMLTableElement} table */
-function commuteHead(table) {
-  const head = table.createTHead();
-  head
-    .insertRow()
-    .append(
-      th("Mode", { rowspan: "2", scope: "col" }),
-      th("Time per trip", { rowspan: "2", scope: "col" }),
-      th("Climate impact", { colspan: "2", scope: "colgroup" }),
-      th("Your exposure", { scope: "col" }),
-    );
-  head
-    .insertRow()
-    .append(
-      th("kg CO2e / week", { scope: "col" }),
-      th("kg CO2e avoided / week", { scope: "col" }),
-      th("µg PM2.5 inhaled / trip", { scope: "col" }),
-    );
-}
-
-/**
- * @param {HTMLTableSectionElement} body
- * @param {ModeOption} o
- */
-function commuteRow(body, o) {
-  const row = body.insertRow();
-  row.append(th(o.is_current ? `${o.label} (current)` : o.label, { scope: "row" }));
-  [
-    `${o.minutes_per_trip} min`,
-    fmt(o.emissions_kg_co2e_per_week, 2),
-    o.is_current ? "–" : fmt(o.emissions_avoided_kg_co2e_per_week, 2),
-    fmt(o.inhaled_pm25_ug_per_trip, 1),
-  ].forEach((text) => {
-    row.insertCell().textContent = text;
-  });
-  if (o.is_current) row.className = "current";
-}
-
-/** @param {import("./api").CommuteAdvice} c */
-function renderCommute(c) {
-  const section = card("Greener commute: the impact of your choice");
-  const table = el("table", undefined, "commute");
-  table.append(
-    el(
-      "caption",
-      "Two separate impacts: climate emissions (whole week) and the PM2.5 you personally breathe in (per trip, at today's levels).",
-    ),
-  );
-  commuteHead(table);
-  const body = table.createTBody();
-  c.options.forEach((o) => commuteRow(body, o));
-  // A scrollable region must be focusable so keyboard users can scroll it.
-  const scroll = el("div", undefined, "table-scroll");
-  scroll.tabIndex = 0;
-  scroll.setAttribute("role", "region");
-  scroll.setAttribute("aria-label", "Commute comparison table");
-  scroll.append(table);
-  const details = el("details");
-  details.append(el("summary", "Assumptions and sources"), list([...c.assumptions, ...c.sources]));
-  section.append(el("p", c.summary, "lead"), scroll, details);
-  return section;
 }
 
 // Every card for a plan, in reading order.

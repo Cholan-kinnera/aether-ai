@@ -1,19 +1,8 @@
 // Pure presentation helpers (no DOM), unit-tested with `node --test`.
-/** @typedef {import("./api").FormValues} FormValues */
-/** @typedef {import("./api").PlanRequest} PlanRequest */
-/** @typedef {import("./api").Verdict} Verdict */
-/** @typedef {{ max: number, name: string, key: string, icon: string }} Category */
-
-/** @type {readonly Category[]} */
-
-export const CATEGORIES = [
-  { max: 50, name: "Good", key: "good", icon: "●" },
-  { max: 100, name: "Moderate", key: "moderate", icon: "◆" },
-  { max: 150, name: "Unhealthy for Sensitive Groups", key: "usg", icon: "▲" },
-  { max: 200, name: "Unhealthy", key: "unhealthy", icon: "■" },
-  { max: 300, name: "Very Unhealthy", key: "very-unhealthy", icon: "✖" },
-  { max: Infinity, name: "Hazardous", key: "hazardous", icon: "☠" },
-];
+/** @typedef {import("#api").FormValues} FormValues */
+/** @typedef {import("#api").PlanRequest} PlanRequest */
+/** @typedef {import("#api").Verdict} Verdict */
+/** @typedef {import("#api").Category} Category */
 
 /** @type {Record<Verdict, { icon: string, label: string }>} */
 export const VERDICTS = {
@@ -26,29 +15,39 @@ export const VERDICTS = {
 export const CFM_TO_M3H = 1.69901;
 
 /**
- * EPA category for an AQI value; null when the value is missing.
+ * EPA category for an AQI value, from the server-rendered bands; null when the value is missing.
  * @param {number | null | undefined} aqi
+ * @param {readonly Category[]} categories bands in ascending order (the last has max null)
  * @returns {Category | null}
  */
-export function categoryOf(aqi) {
+export function categoryFor(aqi, categories) {
   if (aqi === null || aqi === undefined || Number.isNaN(aqi)) return null;
-  return CATEGORIES.find((c) => aqi <= c.max) ?? null;
+  return categories.find((c) => c.max === null || aqi <= c.max) ?? null;
 }
+
+const ISO_TIME = { start: 11, end: 16 }; // "YYYY-MM-DDTHH:MM": the HH:MM part
+const MINUTES_PER_HOUR = 60;
+const HTTP = { invalid: 422, tooMany: 429 };
 
 /**
  * "HH:MM" from an ISO local time, or an en dash when unknown.
  * @param {unknown} iso
  */
 export function hourLabel(iso) {
-  return typeof iso === "string" && iso.length >= 16 ? iso.slice(11, 16) : "–";
+  return typeof iso === "string" && iso.length >= ISO_TIME.end
+    ? iso.slice(ISO_TIME.start, ISO_TIME.end)
+    : "–";
 }
 
-/** @param {number} minutes */
+/**
+ * How long ago a reading was taken, in words.
+ * @param {number} minutes
+ */
 export function ageText(minutes) {
   if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours} h ${minutes % 60} min ago`;
+  if (minutes < MINUTES_PER_HOUR) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
+  return `${hours} h ${minutes % MINUTES_PER_HOUR} min ago`;
 }
 
 /**
@@ -117,8 +116,8 @@ export function buildPayload(v) {
  * @param {{ detail?: unknown } | null} data
  */
 export function errorMessage(status, data) {
-  if (status === 422) return "Please check the highlighted values and try again.";
-  if (status === 429) return "Too many requests. Please wait a minute and try again.";
+  if (status === HTTP.invalid) return "Please check the highlighted values and try again.";
+  if (status === HTTP.tooMany) return "Too many requests. Please wait a minute and try again.";
   if (data && typeof data.detail === "string") return data.detail;
   return "Something went wrong. Please try again.";
 }

@@ -1,8 +1,8 @@
 // Household and plan rows on the planner form, saved on this device only (localStorage).
 import { byId, el, pick } from "./dom.js";
 
-/** @typedef {import("./api").FormValues["members"][number]} MemberRow */
-/** @typedef {import("./api").FormValues["activities"][number]} ActivityRow */
+/** @typedef {import("#api").FormValues["members"][number]} MemberRow */
+/** @typedef {import("#api").FormValues["activities"][number]} ActivityRow */
 /** @typedef {{ location?: string, members?: Partial<MemberRow>[], activities?: Partial<ActivityRow>[] }} Saved */
 
 const STORE_KEY = "aether.household.v1";
@@ -25,12 +25,13 @@ const ACTIVITY_FIELDS = ["label", "activity", "duration", "earliest", "latest"];
 const membersList = byId("members");
 const activitiesList = byId("activities");
 let rowId = 0;
+const HOURS_IN_DAY = 24;
 
 /** @param {HTMLSelectElement} select */
 function fillHours(select) {
   // API contract: earliest_hour 0-23, latest_hour 1-24.
   const first = select.dataset.id === "latest" ? 1 : 0;
-  for (let h = first; h <= first + 23; h++) {
+  for (let h = first; h < first + HOURS_IN_DAY; h++) {
     const opt = el("option", `${String(h).padStart(2, "0")}:00`);
     opt.value = String(h);
     select.append(opt);
@@ -187,6 +188,7 @@ export function restore(locationInput) {
     .forEach((a) => addActivity(a));
 }
 
+/** Delete the saved household and reset the form to one person and one walk. */
 export function forget() {
   try {
     localStorage.removeItem(STORE_KEY);

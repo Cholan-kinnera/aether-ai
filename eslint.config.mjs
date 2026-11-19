@@ -1,6 +1,11 @@
-// ESLint for the no-build frontend, the node:test helpers and the Playwright specs.
+// ESLint for the no-build front end (ES modules), the node:test helpers and the Playwright specs.
+// The size, complexity and magic-number limits below are the code-quality rules of this repo;
+// CODE_QUALITY.md reports the measured values against them.
 import js from "@eslint/js";
+import jsdoc from "eslint-plugin-jsdoc";
 import globals from "globals";
+
+const APP = "src/aether/static/js/**/*.js";
 
 export default [
   {
@@ -14,16 +19,34 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ["src/aether/static/js/**/*.js"],
-    languageOptions: {
-      sourceType: "module",
-      globals: { ...globals.browser, gsap: "readonly", ScrollTrigger: "readonly", Lenis: "readonly" },
+    files: [APP],
+    languageOptions: { sourceType: "module", globals: globals.browser },
+    plugins: { jsdoc },
+    rules: {
+      "max-lines": ["error", { max: 200, skipBlankLines: true, skipComments: true }],
+      "max-lines-per-function": ["error", { max: 40, skipBlankLines: true, skipComments: true }],
+      complexity: ["error", 8],
+      "max-depth": ["error", 3],
+      "max-params": ["error", 4],
+      "no-magic-numbers": [
+        "error",
+        {
+          ignore: [-1, 0, 1, 2, 100, 1000],
+          ignoreArrayIndexes: true,
+          ignoreDefaultValues: true,
+          enforceConst: true,
+        },
+      ],
+      "jsdoc/require-jsdoc": [
+        "error",
+        { publicOnly: true, require: { FunctionDeclaration: true, ArrowFunctionExpression: true } },
+      ],
     },
   },
-  // motion.js and cursor.js are classic scripts (IIFEs), loaded after the vendored globals.
+  // Named constants live here; this is where the numbers are allowed.
   {
-    files: ["src/aether/static/js/motion.js", "src/aether/static/js/cursor.js"],
-    languageOptions: { sourceType: "script" },
+    files: ["src/aether/static/js/motion/constants.js", "src/aether/static/js/chart.js"],
+    rules: { "no-magic-numbers": "off" },
   },
   { files: ["tests/**/*.mjs", "*.mjs"], languageOptions: { globals: globals.node } },
   // Playwright callbacks passed to page.evaluate run in the browser.
@@ -39,15 +62,11 @@ export default [
       "no-eval": "error",
       "no-implied-eval": "error",
       "no-new-func": "error",
-      "no-param-reassign": "error",
+      "no-param-reassign": ["error", { props: false }],
       "no-shadow": "error",
       "object-shorthand": "error",
       "prefer-template": "error",
       curly: ["error", "multi-line"],
-      complexity: ["error", 12],
-      "max-depth": ["error", 4],
-      "max-lines-per-function": ["error", { max: 60, skipBlankLines: true, skipComments: true }],
     },
   },
-  { files: ["tests/**/*.mjs"], rules: { "max-lines-per-function": "off" } },
 ];

@@ -4,7 +4,7 @@ import { test } from "node:test";
 import {
   ageText,
   buildPayload,
-  categoryOf,
+  categoryFor,
   errorMessage,
   fmt,
   hourLabel,
@@ -24,13 +24,24 @@ const base = {
   note: "  ",
 };
 
-test("categoryOf maps EPA boundaries and handles missing values", () => {
-  assert.equal(categoryOf(50).key, "good");
-  assert.equal(categoryOf(51).key, "moderate");
-  assert.equal(categoryOf(150).key, "usg");
-  assert.equal(categoryOf(301).key, "hazardous");
-  assert.equal(categoryOf(null), null);
-  assert.equal(categoryOf(Number.NaN), null);
+// The same shape the server renders from aqi.CATEGORIES (the top band has no upper bound).
+const BANDS = [
+  { name: "Good", max: 50, key: "good", icon: "●" },
+  { name: "Moderate", max: 100, key: "moderate", icon: "◆" },
+  { name: "Unhealthy for Sensitive Groups", max: 150, key: "usg", icon: "▲" },
+  { name: "Unhealthy", max: 200, key: "unhealthy", icon: "■" },
+  { name: "Very Unhealthy", max: 300, key: "very-unhealthy", icon: "✖" },
+  { name: "Hazardous", max: null, key: "hazardous", icon: "☠" },
+];
+
+test("categoryFor maps EPA boundaries and handles missing values", () => {
+  assert.equal(categoryFor(50, BANDS)?.key, "good");
+  assert.equal(categoryFor(51, BANDS)?.key, "moderate");
+  assert.equal(categoryFor(150, BANDS)?.key, "usg");
+  assert.equal(categoryFor(301, BANDS)?.key, "hazardous");
+  assert.equal(categoryFor(5000, BANDS)?.key, "hazardous");
+  assert.equal(categoryFor(null, BANDS), null);
+  assert.equal(categoryFor(Number.NaN, BANDS), null);
 });
 
 test("text helpers", () => {

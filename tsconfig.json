@@ -13,7 +13,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": { "#api": ["./types/api.d.ts"] }
   },
-  "include": ["src/aether/static/js/**/*.js", "src/aether/static/js/**/*.d.ts"]
+  "include": ["src/aether/static/js/**/*.js", "types/**/*.d.ts"]
 }

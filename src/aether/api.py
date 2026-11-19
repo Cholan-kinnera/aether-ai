@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Annotated, Protocol, cast
 import httpx
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .advisor import Advisor, GeminiAdvisor, rules_briefing
@@ -29,6 +29,7 @@ from .airdata import (
 )
 from .config import Settings
 from .models import Briefing, ErrorDetail, PlanRequest, PlanResponse
+from .pages import TEMPLATES, page_context
 from .security import SECURITY_HEADERS, RateLimiter, client_ip
 from .service import build_plan
 from .stations import OpenAQClient, StationLookup
@@ -172,15 +173,15 @@ async def briefing(briefing_id: str, svc: ServicesDep) -> Briefing:
 
 
 @router.get("/", include_in_schema=False)
-async def index() -> FileResponse:
+async def index(request: Request) -> HTMLResponse:
     """Landing page."""
-    return FileResponse(STATIC_DIR / "index.html")
+    return TEMPLATES.TemplateResponse(request, "index.html", page_context())
 
 
 @router.get("/plan", include_in_schema=False)
-async def planner() -> FileResponse:
+async def planner(request: Request) -> HTMLResponse:
     """Planner page."""
-    return FileResponse(STATIC_DIR / "plan.html")
+    return TEMPLATES.TemplateResponse(request, "plan.html", page_context())
 
 
 def create_app(

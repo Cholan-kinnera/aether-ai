@@ -13,14 +13,17 @@ import {
 } from "./household.js";
 import { SOURCE_TEXT, renderPlan } from "./render.js";
 
-/** @typedef {import("./api").PlanResponse} PlanResponse */
-/** @typedef {import("./api").Briefing} Briefing */
+/** @typedef {import("#api").PlanResponse} PlanResponse */
+/** @typedef {import("#api").Briefing} Briefing */
 
 const form = byId("plan-form");
 const results = byId("results");
 const locationInput = /** @type {HTMLInputElement} */ (byId("location"));
 /** @type {{ latitude: number, longitude: number } | null} */
 let coords = null;
+// Three decimals (about 100 m) is enough for an air forecast and keeps the request coarse.
+const COORD_DECIMALS = 3;
+const LOCATION_TIMEOUT_MS = 10000;
 
 /** @param {string} id */
 const value = (id) =>
@@ -137,12 +140,14 @@ function useMyLocation() {
   }
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      // Three decimals (about 100 m) is enough for an air forecast and keeps the request coarse.
-      coords = { latitude: +pos.coords.latitude.toFixed(3), longitude: +pos.coords.longitude.toFixed(3) };
+      coords = {
+        latitude: +pos.coords.latitude.toFixed(COORD_DECIMALS),
+        longitude: +pos.coords.longitude.toFixed(COORD_DECIMALS),
+      };
       locationInput.value = HERE;
     },
     () => showMessage("Could not get your location. Please type a city instead."),
-    { timeout: 10000 },
+    { timeout: LOCATION_TIMEOUT_MS },
   );
 }
 
