@@ -15,3 +15,4 @@ node_modules/
 .next/
 # 3D assets need a verified license before they are committed
 *.glb
+.playwright-mcp/
