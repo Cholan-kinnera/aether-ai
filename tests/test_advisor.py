@@ -82,7 +82,7 @@ async def test_gemini_success_sends_untrusted_note_delimited():
 @pytest.mark.parametrize(
     "response",
     [
-        httpx.Response(429),
+        httpx.Response(400),
         httpx.Response(200, json={"candidates": []}),
         httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "not json"}]}}]}),
         gemini_reply("visit http://x"),
@@ -103,3 +103,37 @@ async def test_global_budget_caps_model_calls():
         assert (await advisor.explain(make_plan(), None))[1] == "gemini"
         assert (await advisor.explain(make_plan(), None))[1] == "rules"
     assert route.call_count == 1
+
+
+@respx.mock
+async def test_overload_is_retried_once_then_succeeds(monkeypatch):
+    monkeypatch.setattr("aether.advisor.RETRY_BACKOFF_SECONDS", 0)
+    route = respx.post(URL).mock(side_effect=[httpx.Response(503), gemini_reply("Calm today.")])
+    async with httpx.AsyncClient() as http:
+        text, source = await GeminiAdvisor("k", "m", http).explain(make_plan(), None)
+    assert (text, source) == ("Calm today.", "gemini")
+    assert route.call_count == 2
+
+
+@respx.mock
+@pytest.mark.parametrize("status", [429, 500, 503])
+async def test_retry_is_bounded_to_one(monkeypatch, status):
+    monkeypatch.setattr("aether.advisor.RETRY_BACKOFF_SECONDS", 0)
+    route = respx.post(URL).mock(return_value=httpx.Response(status))
+    async with httpx.AsyncClient() as http:
+        _, source = await GeminiAdvisor("k", "m", http).explain(make_plan(), None)
+    assert source == "rules"
+    assert route.call_count == 2
+
+
+@respx.mock
+async def test_client_errors_and_late_failures_are_not_retried(monkeypatch):
+    route = respx.post(URL).mock(return_value=httpx.Response(400))
+    async with httpx.AsyncClient() as http:
+        advisor = GeminiAdvisor("k", "m", http)
+        assert (await advisor.explain(make_plan(), None))[1] == "rules"
+        assert route.call_count == 1
+        route.mock(return_value=httpx.Response(503))
+        monkeypatch.setattr("aether.advisor.MIN_RETRY_SECONDS", 1_000)
+        assert (await advisor.explain(make_plan(), None))[1] == "rules"
+    assert route.call_count == 2

@@ -7,8 +7,10 @@ deterministic briefing, so the app always works and the model never changes a nu
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
+import time
 from typing import Any, Literal, Protocol
 
 import httpx
@@ -18,7 +20,10 @@ from .security import RateLimiter
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 MAX_BRIEFING_CHARS = 700
-GEMINI_TIMEOUT_SECONDS = 25.0
+GEMINI_TIMEOUT_SECONDS = 25.0  # overall budget per briefing, retries included
+RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+RETRY_BACKOFF_SECONDS = 1.0
+MIN_RETRY_SECONDS = 5.0
 Source = Literal["gemini", "rules"]
 
 SYSTEM_PROMPT = (
@@ -138,15 +143,26 @@ class GeminiAdvisor:
             },
         }
         try:
-            response = await self._http.post(
-                GEMINI_URL.format(model=self._model),
-                json=body,
-                headers={"x-goog-api-key": self._key},
-                timeout=GEMINI_TIMEOUT_SECONDS,
-            )
-            response.raise_for_status()
+            response = await self._post(body)
             raw = response.json()["candidates"][0]["content"]["parts"][0]["text"]
             text = clean_briefing(json.loads(raw)["briefing"])
         except httpx.HTTPError, KeyError, IndexError, TypeError, ValueError:
             return fallback
         return (text, "gemini") if text else fallback
+
+    async def _post(self, body: dict[str, Any]) -> httpx.Response:
+        """At most one retry, only for overload/server errors, within one overall deadline."""
+        deadline = time.monotonic() + GEMINI_TIMEOUT_SECONDS
+        for attempt in range(2):
+            response = await self._http.post(
+                GEMINI_URL.format(model=self._model),
+                json=body,
+                headers={"x-goog-api-key": self._key},
+                timeout=max(deadline - time.monotonic(), 0.1),
+            )
+            retryable = response.status_code in RETRY_STATUSES
+            if attempt or not retryable or deadline - time.monotonic() < MIN_RETRY_SECONDS:
+                break
+            await asyncio.sleep(RETRY_BACKOFF_SECONDS)
+        response.raise_for_status()
+        return response
