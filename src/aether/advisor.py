@@ -18,7 +18,7 @@ from .security import RateLimiter
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 MAX_BRIEFING_CHARS = 700
-GEMINI_TIMEOUT_SECONDS = 15.0
+GEMINI_TIMEOUT_SECONDS = 25.0
 Source = Literal["gemini", "rules"]
 
 SYSTEM_PROMPT = (
