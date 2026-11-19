@@ -17,7 +17,7 @@ up to eight members can be added, and the household gets the strictest member's 
 | Problem-statement need | How AETHER answers it |
 |---|---|
 | Health guidance for sensitive groups | A verdict per member (**Go / Take care / Limit / Stay indoors**) from the EPA AQI category descriptions; sensitive groups are treated one category stricter, and hard exercise one step stricter again. |
-| Low-emission daily routine | Each planned activity is placed in its cleanest forecast hours within the member's own time limits. If the air is bad all day, the app says so and suggests doing it indoors. |
+| Low-emission daily routine | Each planned activity is placed in its cleanest forecast hours within the member's own time limits, and the impact of that choice is shown as PM2.5 breathed in during the chosen slot versus going now (EPA inhalation rates for the activity's intensity). If the air is bad all day, the app says so and suggests doing it indoors. |
 | Indoor air | Purifier sizing (EPA chart), clean-air changes per hour, time to cut particles by 90%, the best hour to air the home, and smog-season habits. |
 | Greener commute | kg CO2e per week for each travel mode (UK DESNZ 2026 factors), **kept separate from** the PM2.5 you breathe in per trip (EPA Exposure Factors Handbook). On a smoggy day cycling cuts emissions but raises your exposure, and the app shows both. |
 | Personal, plain-language briefing | Google Gemini (`gemini-3.5-flash-lite`) writes a short briefing from the computed plan. The page shows a rule-based briefing at once and replaces it when Gemini answers. |
@@ -71,7 +71,7 @@ that receives focus; the forecast is also available as a data table; visible foc
 uv sync
 uv run ruff check . && uv run ruff format --check .
 uv run mypy            # strict
-uv run pytest          # 127 tests, 100% coverage (fails under 90%)
+uv run pytest          # 133 tests, 100% coverage (fails under 90%)
 node --test tests/js/  # front-end helpers
 npm ci && npx playwright install chromium
 npx playwright test    # browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
