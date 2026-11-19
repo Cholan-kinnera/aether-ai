@@ -99,6 +99,21 @@ test.describe("planner", () => {
     await expect.poll(haze, { timeout: 6000 }).toBeGreaterThan(0.5);
   });
 
+  test("the city rises behind the form as you scroll; a mouse lights the glass", async ({ page, isMobile }) => {
+    const treesY = () => page.locator(".trees").evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).f);
+    expect(await treesY()).toBeGreaterThan(-1);
+    await page.mouse.wheel(0, 1200);
+    await expect.poll(treesY, { timeout: 4000 }).toBeLessThan(-20);
+    const panel = page.locator(".planner > .glass");
+    if (isMobile) {
+      await expect(panel).not.toHaveClass(/has-glow/); // touch: no pointer light
+    } else {
+      await page.mouse.move(600, 400);
+      await page.mouse.move(640, 420, { steps: 3 });
+      await expect(panel).toHaveClass(/is-lit/);
+    }
+  });
+
   test("reduced motion: the planner sky stays still", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/plan");
