@@ -2,104 +2,103 @@
 
 [![CI](https://github.com/Cholan-kinnera/aether-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Cholan-kinnera/aether-ai/actions)
 
-> Generic AQI apps show one number for everyone. **AETHER tells *you* whether the air is
-> right for *your* plans** – a child's playground trip, an asthmatic's evening jog, a cyclist's
-> commute – and when today's cleanest window is.
+> One AQI number tells nobody what to do. **AETHER plans a household's day around the smog:**
+> who in the family should go out and when, how to keep the air at home clean, and what a greener
+> commute changes, with every number's source and age shown.
 
 **Challenge:** PromptWars Virtual – Challenge 6, *Urban Air Quality Assistant*.
 
-## Chosen vertical and persona
-Urban residents who are sensitive to air pollution or exercise outdoors: people with asthma or
-heart conditions, parents of young children, older adults, pregnant people, runners, cyclists and
-commuters. Each gets a decision tailored to their own context instead of a raw number.
+## Who it is for
+Families in smog-affected cities, especially households with someone sensitive: asthma or a lung
+condition, children, older adults, pregnancy or a heart condition. One person's details are enough;
+up to eight members can be added, and the household gets the strictest member's verdict.
+
+## What it does
+| Problem-statement need | How AETHER answers it |
+|---|---|
+| Health guidance for sensitive groups | A verdict per member (**Go / Take care / Limit / Stay indoors**) from the EPA AQI category descriptions; sensitive groups are treated one category stricter, and hard exercise one step stricter again. |
+| Low-emission daily routine | Each planned activity is placed in its cleanest forecast hours within the member's own time limits. If the air is bad all day, the app says so and suggests doing it indoors. |
+| Indoor air | Purifier sizing (EPA chart), clean-air changes per hour, time to cut particles by 90%, the best hour to air the home, and smog-season habits. |
+| Greener commute | kg CO2e per week for each travel mode (UK DESNZ 2026 factors), **kept separate from** the PM2.5 you breathe in per trip (EPA Exposure Factors Handbook). On a smoggy day cycling cuts emissions but raises your exposure, and the app shows both. |
+| Personal, plain-language briefing | Google Gemini (`gemini-3.5-flash-lite`) writes a short briefing from the computed plan. The page shows a rule-based briefing at once and replaces it when Gemini answers. |
 
 ## How it works
 ```
-Browser form ──▶ POST /api/advice ──▶ profile (form + note parsing)
-                                  ──▶ Open-Meteo geocoding + air quality (cached)
-                                  ──▶ rule engine: verdict, reasons, actions, best window
-                                  ──▶ Gemini explains the verdict (falls back to rules)
+Browser ──▶ POST /api/plan ──▶ Open-Meteo geocoding + CAMS air quality + weather (TTL cache)
+                           ──▶ rules.py / planner.py / indoor.py / commute.py (deterministic)
+                           ◀── plan + rule-based briefing + one-time briefing_id
+        ──▶ POST /api/briefing/{id} ──▶ Gemini rewrites the briefing (never the numbers)
 ```
-1. **Context in.** Location (name or GPS), sensitive groups, planned activity and an optional
-   free-text note such as *"I have asthma and want to jog this evening"*. The note is parsed
-   deterministically (with negation handling: "no asthma" is respected). Explicit form fields
-   always win over the note.
-2. **Live data.** Current US AQI, per-pollutant sub-indices (PM2.5, PM10, NO₂, O₃, SO₂, CO) and a
-   24-hour forecast from the free [Open-Meteo](https://open-meteo.com/) APIs (no key needed).
-3. **Decision logic (`rules.py`).** An *exposure-adjusted AQI* = measured AQI × multiplier, where the
-   multiplier adds +25% per sensitive group (capped at +50%) and an activity bonus (commute +5%,
-   cycling +10%, running +15%). It is mapped to the EPA bands: **go** ≤ 50, **caution** ≤ 100,
-   **limit** ≤ 150, **avoid** > 150. The same air gives different verdicts to different people.
-4. **Actionable output.** Reasons ("PM2.5 is the main pollutant"), concrete actions (N95 mask,
-   inhaler within reach, move exercise indoors, quieter streets for NO₂, mornings for ozone) and
-   the cleanest 2-hour window in the next 24 hours.
-5. **Gen AI explanation.** Gemini turns the structured decision into 2–3 friendly sentences that
-   reflect the user's note. If there is no key, the call fails or the output fails validation, a
-   deterministic explanation is used, so the app never breaks.
+
+## Data honesty
+- Values are **model estimates** (Copernicus CAMS via Open-Meteo), labelled as such, with source,
+  observation time, retrieval time and data age. Data older than 3 hours is flagged as stale.
+- Missing values stay missing; nothing is filled in or invented.
+- Emissions (macro impact) and inhaled dose (personal exposure) are separate fields and labels.
+- No medical claims: guidance points to the person's doctor and local health authority.
 
 ## Design decisions
-- **The LLM never decides safety.** The verdict is rule-based, transparent and unit-tested; Gemini
-  only explains it. A prompt-injection attempt in the note cannot change the verdict (tested).
-- **Graceful degradation.** Works without any API key and survives upstream outages with clear
-  errors (404 unknown place, 502 data service down, 429 rate limited).
-- **Small and fast.** Async HTTP, a bounded TTL cache (10 min), no front-end build step, repo well
-  under 10 MB.
+- **The LLM never decides.** Verdicts, schedules and numbers are deterministic and unit-tested.
+  Gemini only phrases the briefing. Its output must be JSON of at most 700 characters with no links,
+  or it is discarded. The user's note is passed as delimited, untrusted data.
+- **Fast first paint.** The plan returns without waiting for Gemini, which can take 5–25 s.
+  Gemini calls have a 25 s timeout and a global per-minute cap.
+- **No build step, no database.** FastAPI serves one static page. Household details are kept only
+  in the browser's localStorage and can be removed with "Forget saved household".
 
 ## Security
-- Secrets only via environment variables (`.env.example` provided, `.env` git-ignored).
-- Strict input validation with Pydantic (`extra="forbid"`, length limits, enum-restricted fields).
-- Per-client sliding-window rate limit on the API; bounded in-memory state.
-- Security headers on every response: CSP (no inline scripts or styles), `nosniff`,
-  `no-referrer`, `frame-ancestors 'none'`, `Permissions-Policy`; `no-store` on API responses.
-- The front end writes to the DOM only with `textContent` (no `innerHTML`), so no XSS sink.
-- LLM safety: user note is delimited and marked untrusted; output must be JSON, ≤ 600 characters
-  and link-free or it is discarded.
-- Runs as a non-root user in the container; CI uses read-only permissions.
+- Secrets only in environment variables (`.env.example` holds placeholders; `.env` is ignored).
+- Pydantic validation with `extra="forbid"` and bounds on every field.
+- Per-client rate limit. `X-Forwarded-For` is ignored unless `TRUSTED_PROXY_HOPS` is set, and then
+  only that many hops are trusted, so set it to the real number of proxies in front of the app.
+- CSP without inline scripts, `nosniff`, `no-referrer`, `frame-ancestors 'none'`, HSTS,
+  `Permissions-Policy`, and `no-store` on API responses. The DOM is written only with
+  `textContent`.
+- Structured logs with request IDs; user text and secrets are never logged.
+- The container runs as a non-root user; CI has read-only permissions.
 
 ## Accessibility
-Semantic landmarks and a skip link; every control has a visible label; fieldset/legend for the
-group choices; verdicts use **text + icon, never colour alone**; WCAG AA contrast in light and
-dark mode; `aria-live` results region that receives focus after submit; errors announced with
-`role="alert"` and `aria-invalid`; forecast as a real data table (not only a chart); 44 px touch
-targets; visible focus rings; respects `prefers-reduced-motion`; works fully by keyboard.
+Skip link, landmarks and headings; every control is labelled; fieldsets for grouped choices;
+verdicts and AQI shown as number + text + icon, never colour alone; an `aria-live` results region
+that receives focus; the forecast is also available as a data table; visible focus;
+`prefers-reduced-motion` respected; fully keyboard operable; no horizontal scroll at 375 px.
 
-## Testing
-75 tests, ~99% coverage (CI fails under 85%): AQI band boundaries, every verdict threshold,
-persona rules, best-window selection with missing data, the note parser (incl. negations), the
-Open-Meteo client (mocked HTTP, caching, error mapping), Gemini success and every failure path,
-prompt-injection, rate limiting, security headers and input validation.
-
+## Checks
 ```bash
-pip install -r requirements-dev.txt
-ruff check .
-pytest
+uv sync
+uv run ruff check . && uv run ruff format --check .
+uv run mypy            # strict
+uv run pytest          # 122 tests, 100% coverage (fails under 90%)
+node --test tests/js/  # front-end helpers
 ```
 
 ## Run locally
 ```bash
-pip install -r requirements.txt
-cp .env.example .env            # optional: add GEMINI_API_KEY
-export $(grep -v '^#' .env | xargs)   # or set variables your own way
-PYTHONPATH=src uvicorn aether.api:app --reload
+cp .env.example .env    # optional: add GEMINI_API_KEY; without it the rule-based briefing is used
+uv run --env-file .env uvicorn aether.api:app --reload
 # open http://localhost:8000
 ```
 
 ## Deploy (Google Cloud Run)
 ```bash
 gcloud run deploy aether-ai --source . --region asia-south1 --allow-unauthenticated \
-  --set-secrets GEMINI_API_KEY=gemini-api-key:latest
+  --set-secrets GEMINI_API_KEY=gemini-api-key:latest --set-env-vars TRUSTED_PROXY_HOPS=1
 ```
+`TRUSTED_PROXY_HOPS=1` matches Cloud Run's single front proxy. Leave it at 0 when nothing sits in
+front of the app.
 
 ## Project layout
 ```
-src/aether/   api.py (routes) · rules.py (decision engine) · airdata.py (Open-Meteo)
-              advisor.py (Gemini + fallback) · profiles.py (note parsing) · security.py
-              models.py · aqi.py · config.py · static/ (HTML, CSS, JS)
-tests/        pytest suite     .github/workflows/ci.yml     Dockerfile
+src/aether/  api.py (routes) · service.py (orchestration) · rules.py (verdicts)
+             planner.py (routine) · indoor.py · commute.py · airdata.py (Open-Meteo)
+             advisor.py (Gemini + fallback) · profiles.py (note parsing) · security.py
+             models.py · aqi.py · config.py · static/ (HTML, CSS, JS)
+tests/       pytest suite + tests/js (node:test)
 ```
 
-## Assumptions and limits
-- AQI follows the US EPA scale as reported by Open-Meteo (modelled, not a street-level sensor).
-- Multipliers are a simple, documented heuristic for prioritising caution, not clinical thresholds.
-- Guidance is general and **not medical advice**; users with conditions should follow their doctor.
-- The rate limiter and cache are per process; use a shared store if scaling to many instances.
+## Limits
+- CAMS is a regional forecast model, not a street-level sensor.
+- Emission factors are UK averages; local fleets and power grids differ.
+- Indoor numbers assume a well-mixed, closed room and are estimates, not measurements.
+- The rate limiter and cache live in each process; several instances would need a shared store.
+- Guidance is general and **not medical advice**.
