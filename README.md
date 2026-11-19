@@ -23,6 +23,8 @@ up to eight members can be added, and the household gets the strictest member's 
 | Personal, plain-language briefing | Google Gemini (`gemini-3.5-flash-lite`) writes a short briefing from the computed plan. The page shows a rule-based briefing at once and replaces it when Gemini answers. |
 
 ## How it works
+Full request/response reference: [docs/api.md](docs/api.md).
+
 ```
 Browser ──▶ POST /api/plan ──▶ Open-Meteo geocoding + CAMS air quality + weather (TTL cache)
                            ──▶ rules.py / planner.py / indoor.py / commute.py (deterministic)
