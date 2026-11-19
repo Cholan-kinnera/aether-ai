@@ -64,6 +64,7 @@ test.describe("planner", () => {
     await expect(results.getByText(/breathe in more particles per trip/).first()).toBeVisible();
     // No API key in tests, so the rule-based briefing must remain.
     await expect(results.getByText("Rule-based briefing.")).toBeVisible();
+    await expect(results).not.toHaveAttribute("data-animating", "true");
     await expectNoA11yViolations(page);
   });
 
@@ -86,6 +87,26 @@ test.describe("planner", () => {
       () => getComputedStyle(document.querySelector("button")).transitionDuration,
     );
     expect(duration).toBe("0s");
+  });
+
+  test("the sky follows the plan's real AQI, and new rows ease in", async ({ page }) => {
+    const haze = () => page.locator(".haze-1").evaluate((e) => Number(getComputedStyle(e).opacity));
+    expect(await haze()).toBeLessThan(0.05); // clear before any plan
+    await page.getByRole("button", { name: "+ Add a person" }).click();
+    await expect(page.locator("#members > li")).toHaveCount(2);
+    await planFor(page, "Delhi"); // fixture AQI 170, Unhealthy
+    await expect(page.locator("#results")).not.toHaveAttribute("data-animating", "true");
+    await expect.poll(haze, { timeout: 6000 }).toBeGreaterThan(0.5);
+  });
+
+  test("reduced motion: the planner sky stays still", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/plan");
+    await planFor(page, "Delhi");
+    await expect(page.locator("#results")).toBeFocused();
+    await page.waitForTimeout(800);
+    expect(await page.locator(".haze-1").evaluate((e) => Number(getComputedStyle(e).opacity))).toBeLessThan(0.05);
+    await expect(page.locator("html")).not.toHaveClass(/lenis/);
   });
 
   test("a city chosen on the landing page prefills the planner", async ({ page }) => {
