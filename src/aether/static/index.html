@@ -3,14 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="AETHER plans your family's day around winter smog: who should go out and when, how to keep indoor air clean, and what a greener commute changes, from the CAMS forecast and the nearest official monitor.">
+  <meta name="description" content="AETHER plans your family&#8217;s day around winter smog: who should go out and when, how to keep indoor air clean, and what a greener commute changes, from the CAMS forecast and the nearest official monitor.">
   <meta name="theme-color" content="#1c2b3d">
   <meta property="og:title" content="AETHER: plan your family's day around the smog">
-  <meta property="og:description" content="Cleanest hours for each person at home, indoor air steps and greener trips, with the impact of every choice explained.">
-  <title>AETHER – Urban Air Quality Assistant</title>
+  <meta property="og:description" content="AETHER plans your family&#8217;s day around winter smog: who should go out and when, how to keep indoor air clean, and what a greener commute changes, from the CAMS forecast and the nearest official monitor.">
+  <title>AETHER: plan your family's day around the smog</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%231c2b3d'/%3E%3Ccircle cx='21' cy='12' r='4' fill='%23f3dfb0'/%3E%3Cpath d='M5 22c4-3 7-3 11 0s7 3 11 0' stroke='%2379b4d6' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
-  <link rel="preload" href="/static/vendor/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="/static/vendor/fonts/atkinson-hyperlegible-next.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
@@ -20,11 +18,12 @@
     <div class="sky-layer sky-smog"></div>
     <div class="sky-layer sky-clear"></div>
     <div class="sun"></div>
+    <canvas class="particles"></canvas>
     <svg class="skyline" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" focusable="false">
-      <path class="city city-far" d="M0 900 V760 H0 V620 H20 V602 H40 V620 H60 V760 H60 V448 H74 V430 H88 V448 H104 V760 H106 V626 H183 V760 H184 V636 H198 V618 H212 V636 H226 V760 H226 V635 H244 V617 H262 V635 H281 V760 H281 V609 H357 V760 H362 V491 H442 V760 H446 V577 A38 38 0 0 1 523 577 V760 H524 V498 H566 V760 H568 V622 H590 V604 H612 V622 H634 V760 H638 V497 H697 V760 H698 V510 H713 V492 H728 V510 H744 V760 H745 V634 H766 V616 H787 V634 H808 V760 H808 V643 H833 V625 H858 V643 H884 V760 H887 V522 H914 V504 H941 V522 H970 V760 H972 V491 H1041 V760 H1043 V577 H1102 V760 H1107 V608 L1151 538 L1196 608 V760 H1198 V514 H1271 V760 H1276 V585 H1298 V567 H1320 V585 H1344 V760 H1344 V527 H1359 V509 H1374 V527 H1391 V760 H1397 V602 H1458 V760 H1461 V490 A21 21 0 0 1 1503 490 V760 H1507 V438 H1583 V760 H1585 V481 H1605 V463 H1625 V481 H1646 V760 H1600 V900 Z"/>
-      <path class="city city-mid" d="M0 900 V810 H0 V577 H107 V810 H113 V623 H149 V605 H185 V623 H222 V810 H226 V673 H300 V810 H303 V714 H327 V696 H351 V714 H376 V810 H377 V583 H438 V810 H443 V568 H498 V810 H501 V596 A35 35 0 0 1 571 596 V810 H575 V734 A29 29 0 0 1 633 734 V810 H634 V620 H651 V602 H668 V620 H687 V810 H691 V606 H716 V588 H741 V606 H766 V810 H768 V737 H805 V719 H842 V737 H881 V810 H884 V616 H969 V810 H975 V673 H995 V655 H1015 V673 H1035 V810 H1036 V704 A57 57 0 0 1 1151 704 V810 H1155 V658 H1170 V618 H1202 V658 H1218 V810 H1220 V703 H1319 V810 H1325 V684 H1341 V666 H1357 V684 H1375 V810 H1375 V624 H1485 V810 H1488 V720 H1522 V702 H1556 V720 H1591 V810 H1592 V664 L1634 594 L1676 664 V810 H1600 V900 Z"/>
-      <path class="city city-near" d="M0 900 V860 H0 V734 H26 V694 H80 V734 H107 V860 H111 V764 H147 V746 H183 V764 H220 V860 H222 V726 H250 V708 H278 V726 H308 V860 H311 V790 H334 V772 H357 V790 H382 V860 H382 V790 H465 V860 H468 V816 H509 V798 H550 V816 H591 V860 H596 V755 H721 V860 H722 V743 H746 V725 H770 V743 H796 V860 H797 V773 H946 V860 H948 V703 H1090 V860 H1094 V716 H1200 V860 H1204 V714 H1230 V696 H1256 V714 H1284 V860 H1289 V725 H1420 V860 H1425 V777 H1515 V860 H1519 V714 H1630 V860 H1600 V900 Z"/>
-      <path class="city trees" d="M0 900 V880 H0 A37 37 0 0 1 74 880 H66 A41 41 0 0 1 148 880 H139 A40 40 0 0 1 219 880 H205 A34 34 0 0 1 273 880 H269 A32 32 0 0 1 333 880 H326 A38 38 0 0 1 402 880 H398 A23 23 0 0 1 444 880 H439 A29 29 0 0 1 497 880 H486 A25 25 0 0 1 536 880 H526 A35 35 0 0 1 596 880 H591 A36 36 0 0 1 663 880 H656 A18 18 0 0 1 692 880 H685 A31 31 0 0 1 747 880 H739 A23 23 0 0 1 785 880 H775 A23 23 0 0 1 821 880 H816 A22 22 0 0 1 860 880 H847 A37 37 0 0 1 921 880 H910 A22 22 0 0 1 954 880 H948 A18 18 0 0 1 984 880 H980 A24 24 0 0 1 1028 880 H1021 A23 23 0 0 1 1067 880 H1061 A27 27 0 0 1 1115 880 H1106 A24 24 0 0 1 1154 880 H1142 A39 39 0 0 1 1220 880 H1206 A24 24 0 0 1 1254 880 H1248 A40 40 0 0 1 1328 880 H1321 A30 30 0 0 1 1381 880 H1373 A18 18 0 0 1 1409 880 H1400 A31 31 0 0 1 1462 880 H1456 A22 22 0 0 1 1500 880 H1492 A20 20 0 0 1 1532 880 H1523 A27 27 0 0 1 1577 880 H1564 A36 36 0 0 1 1636 880 H1600 V900 Z"/>
+      <path class="city-far" d="M0 900 V760 H0 V620 H20 V602 H40 V620 H60 V760 H60 V448 H74 V430 H88 V448 H104 V760 H106 V626 H183 V760 H184 V636 H198 V618 H212 V636 H226 V760 H226 V635 H244 V617 H262 V635 H281 V760 H281 V609 H357 V760 H362 V491 H442 V760 H446 V577 A38 38 0 0 1 523 577 V760 H524 V498 H566 V760 H568 V622 H590 V604 H612 V622 H634 V760 H638 V497 H697 V760 H698 V510 H713 V492 H728 V510 H744 V760 H745 V634 H766 V616 H787 V634 H808 V760 H808 V643 H833 V625 H858 V643 H884 V760 H887 V522 H914 V504 H941 V522 H970 V760 H972 V491 H1041 V760 H1043 V577 H1102 V760 H1107 V608 L1151 538 L1196 608 V760 H1198 V514 H1271 V760 H1276 V585 H1298 V567 H1320 V585 H1344 V760 H1344 V527 H1359 V509 H1374 V527 H1391 V760 H1397 V602 H1458 V760 H1461 V490 A21 21 0 0 1 1503 490 V760 H1507 V438 H1583 V760 H1585 V481 H1605 V463 H1625 V481 H1646 V760 H1600 V900 Z"/>
+      <path class="city-mid" d="M0 900 V810 H0 V577 H107 V810 H113 V623 H149 V605 H185 V623 H222 V810 H226 V673 H300 V810 H303 V714 H327 V696 H351 V714 H376 V810 H377 V583 H438 V810 H443 V568 H498 V810 H501 V596 A35 35 0 0 1 571 596 V810 H575 V734 A29 29 0 0 1 633 734 V810 H634 V620 H651 V602 H668 V620 H687 V810 H691 V606 H716 V588 H741 V606 H766 V810 H768 V737 H805 V719 H842 V737 H881 V810 H884 V616 H969 V810 H975 V673 H995 V655 H1015 V673 H1035 V810 H1036 V704 A57 57 0 0 1 1151 704 V810 H1155 V658 H1170 V618 H1202 V658 H1218 V810 H1220 V703 H1319 V810 H1325 V684 H1341 V666 H1357 V684 H1375 V810 H1375 V624 H1485 V810 H1488 V720 H1522 V702 H1556 V720 H1591 V810 H1592 V664 L1634 594 L1676 664 V810 H1600 V900 Z"/>
+      <path class="city-near" d="M0 900 V860 H0 V734 H26 V694 H80 V734 H107 V860 H111 V764 H147 V746 H183 V764 H220 V860 H222 V726 H250 V708 H278 V726 H308 V860 H311 V790 H334 V772 H357 V790 H382 V860 H382 V790 H465 V860 H468 V816 H509 V798 H550 V816 H591 V860 H596 V755 H721 V860 H722 V743 H746 V725 H770 V743 H796 V860 H797 V773 H946 V860 H948 V703 H1090 V860 H1094 V716 H1200 V860 H1204 V714 H1230 V696 H1256 V714 H1284 V860 H1289 V725 H1420 V860 H1425 V777 H1515 V860 H1519 V714 H1630 V860 H1600 V900 Z"/>
+      <path class="trees" d="M0 900 V880 H0 A37 37 0 0 1 74 880 H66 A41 41 0 0 1 148 880 H139 A40 40 0 0 1 219 880 H205 A34 34 0 0 1 273 880 H269 A32 32 0 0 1 333 880 H326 A38 38 0 0 1 402 880 H398 A23 23 0 0 1 444 880 H439 A29 29 0 0 1 497 880 H486 A25 25 0 0 1 536 880 H526 A35 35 0 0 1 596 880 H591 A36 36 0 0 1 663 880 H656 A18 18 0 0 1 692 880 H685 A31 31 0 0 1 747 880 H739 A23 23 0 0 1 785 880 H775 A23 23 0 0 1 821 880 H816 A22 22 0 0 1 860 880 H847 A37 37 0 0 1 921 880 H910 A22 22 0 0 1 954 880 H948 A18 18 0 0 1 984 880 H980 A24 24 0 0 1 1028 880 H1021 A23 23 0 0 1 1067 880 H1061 A27 27 0 0 1 1115 880 H1106 A24 24 0 0 1 1154 880 H1142 A39 39 0 0 1 1220 880 H1206 A24 24 0 0 1 1254 880 H1248 A40 40 0 0 1 1328 880 H1321 A30 30 0 0 1 1381 880 H1373 A18 18 0 0 1 1409 880 H1400 A31 31 0 0 1 1462 880 H1456 A22 22 0 0 1 1500 880 H1492 A20 20 0 0 1 1532 880 H1523 A27 27 0 0 1 1577 880 H1564 A36 36 0 0 1 1636 880 H1600 V900 Z"/>
     </svg>
     <div class="haze haze-1"></div>
     <div class="haze haze-2"></div>
@@ -32,29 +31,48 @@
   </div>
 
   <header class="topbar">
-    <a class="brand" href="#top" data-scroll>
+    <a class="brand" href="/" aria-label="AETHER home">
       <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="21" cy="12" r="4"/><path d="M4 22c4-3 8-3 12 0s8 3 12 0"/></svg>
       <span>AETHER</span>
     </a>
-    <nav aria-label="Page sections">
+    <nav aria-label="Main">
+      <a href="#now" data-scroll>Right now</a>
       <a href="#how" data-scroll>How it decides</a>
-      <a href="#data" data-scroll>Where the numbers come from</a>
-      <a class="nav-cta" href="#planner" data-scroll>Plan my day</a>
+      <a href="#faq" data-scroll>Questions</a>
+      <a class="nav-cta" href="/plan">Plan my day</a>
     </nav>
   </header>
 
   <main id="main" tabindex="-1">
-    <section class="hero" id="top" tabindex="-1" aria-labelledby="hero-title">
+    <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="glass hero-copy">
-        <h1 id="hero-title">Winter smog thins out. Plan your family&#8217;s day around it.</h1>
+        <h1 id="hero-title" class="reveal-words">Winter smog thins out. Plan your family&#8217;s day around it.</h1>
         <p class="hero-lede">AETHER reads the smog forecast for your city and the nearest official monitor, then tells everyone at home when to go out, how to keep the air indoors clean, and what a greener commute really changes.</p>
         <div class="hero-actions">
-          <a class="button" href="#planner" data-scroll>Plan my family&#8217;s day</a>
-          <a class="button ghost" href="#how" data-scroll>How it decides</a>
+          <a class="button" href="/plan">Plan my family&#8217;s day</a>
+          <a class="button ghost" href="#now" data-scroll>See the air right now</a>
         </div>
         <p class="hero-note">Free, no sign-up. Your household is saved only on this device.</p>
       </div>
       <p class="scroll-cue">Scroll, and watch the haze lift</p>
+    </section>
+
+    <section class="band" id="now" tabindex="-1" aria-labelledby="now-title">
+      <div class="glass wide live">
+        <div class="live-head">
+          <h2 id="now-title">Right now, city by city</h2>
+          <div class="chips" role="group" aria-label="Choose a city">
+            <button type="button" class="chip" aria-pressed="true" data-city="Delhi">Delhi</button>
+            <button type="button" class="chip" aria-pressed="false" data-city="Mumbai">Mumbai</button>
+            <button type="button" class="chip" aria-pressed="false" data-city="Kolkata">Kolkata</button>
+            <button type="button" class="chip" aria-pressed="false" data-city="Bengaluru">Bengaluru</button>
+            <button type="button" class="chip" aria-pressed="false" data-city="Chennai">Chennai</button>
+          </div>
+        </div>
+        <div class="live-body" id="live" aria-live="polite" aria-busy="true">
+          <p class="help">Fetching the latest forecast for Delhi.</p>
+        </div>
+      </div>
     </section>
 
     <section class="band" id="features" aria-labelledby="features-title">
@@ -70,7 +88,7 @@
             <dd>Each walk, game or errand moved to its cleanest forecast hours, with the PM2.5 you avoid breathing by waiting.</dd>
           </div>
           <div>
-            <dt><svg class="icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M5 15 16 6l11 9v11H5z"/><path d="M12 26v-6h8v6M10 15h0"/></svg>Air at home</dt>
+            <dt><svg class="icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M5 15 16 6l11 9v11H5z"/><path d="M12 26v-6h8v6"/></svg>Air at home</dt>
             <dd>Whether your purifier is big enough for the room, how fast it cleans the air, and the one hour worth opening a window.</dd>
           </div>
           <div>
@@ -81,135 +99,88 @@
       </div>
     </section>
 
+    <section class="winter" id="winter" aria-labelledby="winter-title">
+      <div class="winter-sticky">
+        <div class="glass wide winter-panel">
+          <div class="winter-text">
+            <h2 id="winter-title">Why winter mornings are the worst</h2>
+            <ol class="phases" role="list">
+              <li class="phase is-active" data-phase="0"><h3>Night</h3><p>The ground cools fast. Warmer air settles on top like a lid, and smoke from traffic, cooking and burning waste stays trapped underneath.</p></li>
+              <li class="phase" data-phase="1"><h3>Morning</h3><p>The lid is still low. Everything emitted overnight is packed into a thin layer of air, right where people walk and breathe.</p></li>
+              <li class="phase" data-phase="2"><h3>Afternoon</h3><p>Sunlight warms the ground, the lid lifts and the same smoke spreads through a much deeper layer. The air at street level is usually at its cleanest.</p></li>
+            </ol>
+            <p class="help">That is why AETHER reads the forecast mixing height, not just the AQI, when it picks your hours.</p>
+          </div>
+          <svg class="inversion" viewBox="0 0 400 300" role="img" aria-labelledby="inversion-title">
+            <title id="inversion-title">Diagram: a warm-air lid traps smog low over the city at night and lifts by the afternoon, letting the smog spread out.</title>
+            <rect class="inv-sky" x="0" y="0" width="400" height="300"/>
+            <circle class="inv-sun" cx="330" cy="250" r="22"/>
+            <rect class="inv-smog" x="0" y="200" width="400" height="80"/>
+            <line class="inv-lid" x1="0" y1="200" x2="400" y2="200"/>
+            <text class="inv-label" x="12" y="192">warm-air lid</text>
+            <path class="inv-city" d="M0 300V262h24v-18h20v26h18v-34h26v22h14v-14h22v30h20v-40h28v40h16v-22h24v12h20v-28h26v34h18v-16h22v26h18v-30h24v20h20v-12h22V262H400V300z"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="people" aria-labelledby="people-title">
+      <div class="glass wide">
+        <h2 id="people-title">For the people you worry about</h2>
+        <ul class="people" role="list">
+          <li><h3>A child with football after school</h3><p>Moved to the cleanest hour before dark, or swapped for an indoor game when even that hour is unhealthy.</p></li>
+          <li><h3>A grandparent who walks every morning</h3><p>Winter mornings are often the smokiest hours. AETHER points to a cleaner slot later in the day, or a walk indoors.</p></li>
+          <li><h3>A runner with asthma</h3><p>Hard exercise counts one step stricter, because you breathe several times more air while running. Inhaler reminders included.</p></li>
+          <li><h3>Someone expecting a baby</h3><p>Treated as a sensitive group throughout, with indoor air steps first and outdoor time kept to the cleanest hours.</p></li>
+        </ul>
+      </div>
+    </section>
+
     <section class="band" id="how" tabindex="-1" aria-labelledby="how-title">
       <div class="glass wide">
         <h2 id="how-title">How it decides</h2>
-        <ol class="steps">
-          <li><h3>You tell it who is at home</h3><p>A name or role and any sensitivities for each person, plus today&#8217;s plans. Names never reach the AI.</p></li>
-          <li><h3>It reads the air</h3><p>The next 24 hours of the Copernicus CAMS forecast, and the nearest reference monitor, such as a CPCB station, through OpenAQ.</p></li>
-          <li><h3>Published rules decide</h3><p>EPA AQI categories and health guidance set every verdict, the same way every time. No guesswork, no model in the loop.</p></li>
+        <ol class="steps" role="list">
+          <li><h3>You tell it who is at home</h3><p>A name or role and any sensitivities for each person, plus today&#8217;s plans. Names are not sent to the AI.</p></li>
+          <li><h3>It reads the air</h3><p>The next 24 hours of the Copernicus CAMS forecast, and the nearest reference monitor, such as a CPCB station, where one has reported recently.</p></li>
+          <li><h3>Published rules decide</h3><p>EPA AQI categories and health guidance set every verdict, the same way every time. No model is in the loop.</p></li>
           <li><h3>Gemini explains</h3><p>Google Gemini turns the finished plan into a short briefing in plain words. It cannot change a verdict or a number.</p></li>
         </ol>
       </div>
     </section>
 
-    <section class="band" id="data" tabindex="-1" aria-labelledby="data-title">
+    <section class="band" id="data" aria-labelledby="data-title">
       <div class="glass wide">
         <h2 id="data-title">Forecast and measurement, side by side</h2>
         <div class="sources">
           <div>
             <h3>Forecast</h3>
-            <p>A model estimate from Copernicus CAMS. It covers every street and the next 24 hours, so it drives the planning. Always labelled as an estimate.</p>
+            <p>A model estimate from Copernicus CAMS on a regional grid, for the next 24 hours. It covers places with no monitor nearby, so it drives the planning. Always labelled as an estimate.</p>
           </div>
           <div>
             <h3>Measured</h3>
-            <p>The nearest official monitor within 25 km, exactly as its operator reports it, with its distance and age. Shown beside the forecast, never blended into it.</p>
+            <p>The nearest official monitor within 25 km that has reported in the last day, exactly as its operator publishes it, with its distance and age. Shown beside the forecast, never blended into it.</p>
           </div>
         </div>
         <p class="sources-note">Anything older than three hours is marked stale. Missing readings stay missing.</p>
       </div>
     </section>
 
-    <section class="band planner" id="planner" tabindex="-1" aria-labelledby="planner-title">
-      <div class="glass wide">
-        <h2 id="planner-title">Plan your family&#8217;s day</h2>
-    <form id="plan-form" novalidate aria-describedby="form-help">
-      <p id="form-help" class="help">Only the location is required. Your household is saved on this device only.</p>
-
-      <div class="field">
-        <label for="location">City or neighbourhood</label>
-        <div class="row">
-          <input id="location" name="location" type="text" autocomplete="address-level2"
-                 maxlength="100" placeholder="e.g. Delhi" aria-describedby="location-error" required>
-          <button type="button" id="geo-btn" class="secondary">Use my location</button>
-        </div>
-        <p id="location-error" class="error" hidden></p>
+    <section class="band" id="faq" tabindex="-1" aria-labelledby="faq-title">
+      <div class="glass wide faq">
+        <h2 id="faq-title">Questions people ask</h2>
+        <details><summary>Is this medical advice?</summary><p>No. AETHER turns public air-quality data and published guidance into a daily plan. Follow your doctor&#8217;s advice and your local health authority&#8217;s alerts, and seek care for chest pain or severe breathlessness.</p></details>
+        <details><summary>Where do the numbers come from?</summary><p>Forecasts come from the Copernicus Atmosphere Monitoring Service through Open-Meteo. Station readings come from OpenAQ, which carries government networks such as India&#8217;s CPCB. Google Gemini only writes the briefing text.</p></details>
+        <details><summary>What happens to my household details?</summary><p>They are saved in your browser so you don&#8217;t have to retype them. To build a plan they are sent to AETHER&#8217;s server, kept in memory for at most five minutes to write the briefing, and never written to disk or logged. Avoid putting names in the free-text note, because that note is passed to the AI.</p></details>
+        <details><summary>Does it work outside India?</summary><p>Yes. The CAMS forecast covers the whole world. The station card appears wherever OpenAQ has a monitor within 25 km that has reported in the last day.</p></details>
+        <details><summary>Why can the forecast and the station disagree?</summary><p>A station measures one spot, and a busy road or a nearby fire can push it up or down. The forecast estimates an average over a wider area. AETHER shows both so you can judge, and plans with the forecast because it looks ahead.</p></details>
       </div>
+    </section>
 
-      <fieldset>
-        <legend>Your household</legend>
-        <ul id="members" class="stack" aria-label="Household members"></ul>
-        <button type="button" id="add-member" class="secondary small">+ Add a person</button>
-      </fieldset>
-
-      <fieldset>
-        <legend>Today's outdoor plans</legend>
-        <p class="help">AETHER finds the cleanest forecast hours for each one.</p>
-        <ul id="activities" class="stack" aria-label="Planned activities"></ul>
-        <button type="button" id="add-activity" class="secondary small">+ Add a plan</button>
-      </fieldset>
-
-      <details class="section">
-        <summary>Home and purifier (optional)</summary>
-        <div class="grid">
-          <div class="field">
-            <label for="area">Main room floor area (m²)</label>
-            <input id="area" type="number" inputmode="decimal" min="4" max="200" step="1" placeholder="e.g. 15">
-          </div>
-          <div class="field">
-            <label for="ceiling">Ceiling height (m)</label>
-            <input id="ceiling" type="number" inputmode="decimal" min="2" max="5" step="0.1" value="2.7">
-          </div>
-          <div class="field">
-            <label for="cadr">Purifier CADR (leave blank if none)</label>
-            <div class="row">
-              <input id="cadr" type="number" inputmode="decimal" min="0" max="3000" step="1" placeholder="e.g. 250">
-              <select id="cadr-unit" aria-label="CADR unit">
-                <option value="m3h">m³/h</option>
-                <option value="cfm">CFM</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <details class="section">
-        <summary>Daily commute (optional)</summary>
-        <div class="grid">
-          <div class="field">
-            <label for="distance">One-way distance (km)</label>
-            <input id="distance" type="number" inputmode="decimal" min="0.5" max="100" step="0.5" placeholder="e.g. 8">
-          </div>
-          <div class="field">
-            <label for="mode">How you travel now</label>
-            <select id="mode">
-              <option value="car_petrol">Petrol car</option>
-              <option value="car_diesel">Diesel car</option>
-              <option value="car_hybrid">Hybrid car</option>
-              <option value="car_ev">Electric car</option>
-              <option value="motorbike">Motorbike / scooter</option>
-              <option value="taxi">Taxi</option>
-              <option value="bus">Bus</option>
-              <option value="metro">Metro / tram</option>
-              <option value="rail">Suburban rail</option>
-              <option value="cycle">Bicycle</option>
-              <option value="walk">Walking</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="occupants">People in the car</label>
-            <input id="occupants" type="number" min="1" max="7" step="1" value="1">
-          </div>
-          <div class="field">
-            <label for="trips">One-way trips per week</label>
-            <input id="trips" type="number" min="1" max="28" step="1" value="10">
-          </div>
-        </div>
-      </details>
-
-      <div class="field">
-        <label for="note">Anything else? (optional)</label>
-        <textarea id="note" rows="2" maxlength="300"
-                  placeholder="e.g. My son has asthma and wants to play football after school"></textarea>
-      </div>
-
-      <div class="actions">
-        <button type="submit" id="submit-btn">Plan my day</button>
-        <button type="button" id="forget-btn" class="link">Forget saved household</button>
-      </div>
-    </form>
-
-    <section id="results" aria-live="polite" aria-busy="false" tabindex="-1" aria-label="Your plan"></section>
+    <section class="band closing" aria-labelledby="closing-title">
+      <div class="glass wide closing-panel">
+        <h2 id="closing-title">Find today&#8217;s cleanest hour</h2>
+        <p>Add the people at home and what they have planned. It takes about a minute.</p>
+        <a class="button" href="/plan">Plan my family&#8217;s day</a>
       </div>
     </section>
   </main>
@@ -219,65 +190,11 @@
     <p>General guidance only, not medical advice.</p>
   </footer>
 
-  <template id="member-tpl">
-    <li class="item">
-      <div class="field">
-        <label data-for="name">Name or role</label>
-        <input data-id="name" type="text" maxlength="40" placeholder="e.g. Grandma">
-      </div>
-      <fieldset class="inline">
-        <legend>Sensitive to air pollution?</legend>
-        <div class="checks">
-          <label><input type="checkbox" value="asthma"> Asthma / lung</label>
-          <label><input type="checkbox" value="child"> Child</label>
-          <label><input type="checkbox" value="elderly"> Older adult</label>
-          <label><input type="checkbox" value="pregnant"> Pregnant</label>
-          <label><input type="checkbox" value="heart_condition"> Heart condition</label>
-        </div>
-      </fieldset>
-      <button type="button" class="link remove">Remove</button>
-    </li>
-  </template>
-
-  <template id="activity-tpl">
-    <li class="item grid">
-      <div class="field">
-        <label data-for="label">Plan</label>
-        <input data-id="label" type="text" maxlength="40" placeholder="e.g. Evening walk">
-      </div>
-      <div class="field">
-        <label data-for="activity">Activity</label>
-        <select data-id="activity">
-          <option value="walk">Walking</option>
-          <option value="run">Running / sport</option>
-          <option value="cycle">Cycling</option>
-          <option value="commute">Commute</option>
-          <option value="rest">Sitting outdoors</option>
-        </select>
-      </div>
-      <div class="field">
-        <label data-for="duration">Hours</label>
-        <select data-id="duration">
-          <option value="0.5">0.5</option><option value="1" selected>1</option>
-          <option value="2">2</option><option value="3">3</option>
-        </select>
-      </div>
-      <div class="field">
-        <label data-for="earliest">Not before</label>
-        <select data-id="earliest" class="hour" data-default="6"></select>
-      </div>
-      <div class="field">
-        <label data-for="latest">Done by</label>
-        <select data-id="latest" class="hour" data-default="22"></select>
-      </div>
-      <button type="button" class="link remove">Remove</button>
-    </li>
-  </template>
-
   <script src="/static/vendor/gsap.min.js" defer></script>
   <script src="/static/vendor/ScrollTrigger.min.js" defer></script>
   <script src="/static/vendor/lenis.min.js" defer></script>
   <script src="/static/js/landing.js" defer></script>
-  <script type="module" src="/static/js/app.js"></script>
+  <script src="/static/js/cursor.js" defer></script>
+  <script type="module" src="/static/js/live.js"></script>
 </body>
 </html>
