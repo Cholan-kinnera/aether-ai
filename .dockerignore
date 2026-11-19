@@ -11,3 +11,4 @@ __pycache__
 .coverage
 .playwright-mcp
 node_modules
+src/aether/static/vendor

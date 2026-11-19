@@ -108,8 +108,16 @@ A custom cursor (a precise dot and a trailing ring that grows over controls) app
 mouse users; touch, pens, form fields and reduced motion keep the native cursor. Content sits on frosted-glass panels over
 the scene. The skyline is hand-built SVG, so there are no stock photos to license and the page
 stays light. Type is Bricolage Grotesque for display and Atkinson Hyperlegible Next, a face
-designed for low-vision readers, for reading. Scripts and fonts are vendored and served from our
-own origin (`src/aether/static/vendor`, licenses listed there), so the strict CSP stays intact.
+designed for low-vision readers, for reading. Third-party scripts and fonts are not committed:
+`npm run vendor` (and the Docker build) copies them from npm, at the exact versions in
+`package-lock.json`, into `src/aether/static/vendor`, so they are served from our own origin and
+the strict CSP stays intact.
+
+| Asset | Package | License |
+|---|---|---|
+| `gsap.min.js`, `ScrollTrigger.min.js` | gsap 3.15.1 | GSAP Standard "no charge" license |
+| `lenis.min.js` | lenis 1.3.27 | MIT |
+| Bricolage Grotesque, Atkinson Hyperlegible Next (latin, variable) | @fontsource-variable 5.3.0 | SIL Open Font License 1.1 |
 With `prefers-reduced-motion`, the sky starts clear, nothing animates and scrolling is native.
 
 ## Accessibility
@@ -138,7 +146,7 @@ uv run ruff check . && uv run ruff format --check .
 uv run mypy            # strict
 uv run pytest          # 181 tests incl. property-based and fuzz tests, 100% coverage
 node --test tests/js/  # front-end helpers
-npm ci && npm run lint && npm run typecheck && npm run format:check
+npm ci && npm run vendor && npm run lint && npm run typecheck && npm run format:check
 npx playwright install chromium
 npx playwright test    # 34 browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
 ```
@@ -154,6 +162,7 @@ CI runs all of the above plus `pip-audit`, `npm audit`, CodeQL and an OWASP ZAP 
 ```bash
 cp .env.example .env    # optional: GEMINI_API_KEY (else rule-based briefing),
                         # OPENAQ_API_KEY (else no station card)
+npm ci --omit=dev && npm run vendor   # fetch GSAP, Lenis and fonts from npm
 uv run --env-file .env uvicorn aether.api:app --reload
 # open http://localhost:8000
 ```
