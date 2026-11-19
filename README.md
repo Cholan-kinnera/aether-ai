@@ -27,14 +27,24 @@ Full request/response reference: [docs/api.md](docs/api.md).
 
 ```
 Browser ──▶ POST /api/plan ──▶ Open-Meteo geocoding + CAMS air quality + weather (TTL cache)
+                           ──▶ OpenAQ nearest station, latest measurements (TTL cache, optional)
                            ──▶ rules.py / planner.py / indoor.py / commute.py (deterministic)
                            ◀── plan + rule-based briefing + one-time briefing_id
         ──▶ POST /api/briefing/{id} ──▶ Gemini rewrites the briefing (never the numbers)
 ```
 
 ## Data honesty
-- Values are **model estimates** (Copernicus CAMS via Open-Meteo), labelled as such, with source,
-  observation time, retrieval time and data age. Data older than 3 hours is flagged as stale.
+- Two kinds of data, never mixed:
+  - **Model estimate**: the Copernicus CAMS forecast via Open-Meteo. It covers every location and
+    drives the hourly planning.
+  - **Station observation**: the nearest monitoring station that reported in the last 24 hours,
+    within 25 km, via [OpenAQ](https://openaq.org) (which carries government networks such as
+    India's CPCB). It is shown in its own card with station id, provider, distance, the provider's
+    own units, unconverted, and the provider's attribution. Readings silent for over a day are
+    left out. It never replaces
+    or adjusts a model value.
+- Every value shows its source, observation time, retrieval time and data age. Data older than
+  3 hours is flagged as stale.
 - Missing values stay missing; nothing is filled in or invented.
 - Emissions (macro impact) and inhaled dose (personal exposure) are separate fields and labels.
 - No medical claims: guidance points to the person's doctor and local health authority.
@@ -71,7 +81,7 @@ that receives focus; the forecast is also available as a data table; visible foc
 uv sync
 uv run ruff check . && uv run ruff format --check .
 uv run mypy            # strict
-uv run pytest          # 133 tests, 100% coverage (fails under 90%)
+uv run pytest          # 163 tests, 100% coverage (fails under 90%)
 node --test tests/js/  # front-end helpers
 npm ci && npx playwright install chromium
 npx playwright test    # browser tests at 1440px and 375px, incl. axe WCAG 2.1 AA scans
@@ -87,7 +97,8 @@ dependencies current. See [SECURITY.md](SECURITY.md) for the threat model.
 
 ## Run locally
 ```bash
-cp .env.example .env    # optional: add GEMINI_API_KEY; without it the rule-based briefing is used
+cp .env.example .env    # optional: GEMINI_API_KEY (else rule-based briefing),
+                        # OPENAQ_API_KEY (else no station card)
 uv run --env-file .env uvicorn aether.api:app --reload
 # open http://localhost:8000
 ```

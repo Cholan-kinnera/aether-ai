@@ -228,6 +228,28 @@ Notes on the fields:
 - `schedule[].inhaled_pm25_ug` is the PM2.5 breathed in during the chosen slot, and
   `inhaled_pm25_now_ug` is the same activity started now: the impact of choosing that time.
   Both are `null` if any hourly PM2.5 value is missing.
+- `station` is the nearest OpenAQ station reading (`kind: station_observation`), or `null`.
+  `station_status` says why: `ok`, `not_configured` (no `OPENAQ_API_KEY`), `none_nearby`
+  (nothing within 25 km reported in 24 h) or `unavailable` (OpenAQ error or malformed data).
+  Only reference monitors are searched; readings over a day old are left out; units are the
+  provider's own. Example:
+
+  ```json
+  "station": {
+    "station_id": 42, "station_name": "Fixture Road", "provider": "CPCB",
+    "is_reference_monitor": true, "distance_km": 2.4,
+    "readings": [
+      {"kind": "station_observation", "station_id": 42, "provider": "CPCB",
+       "pollutant": "pm25", "label": "PM2.5", "value": 98.0, "unit": "µg/m³",
+       "observed_at": "2026-11-19T15:00:00Z", "retrieved_at": "2026-11-19T15:30:00Z",
+       "data_age_minutes": 30, "stale": false}
+    ],
+    "attribution": "Measurements by Central Pollution Control Board, via OpenAQ (openaq.org).",
+    "source": "OpenAQ", "source_url": "https://openaq.org"
+  },
+  "station_status": "ok"
+  ```
+  (Example values come from the test fixture, not a live call.)
 - `emissions_*_kg_co2e_per_week` (macro impact) and `inhaled_pm25_ug_per_trip` (personal exposure)
   are separate fields. One is never derived from the other.
 - `explanation_source` is `rules` here; the upgraded briefing comes from the endpoint below.
